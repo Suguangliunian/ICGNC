@@ -1,0 +1,18 @@
+# TAGA-MAPPO / TAGA-LLM 依赖
+# 基础依赖
+numpy>=1.24.0
+torch>=2.0.0
+pyyaml>=6.0
+scipy>=1.10.0
+
+# 可视化（可选）
+matplotlib>=3.7.0
+
+# LLM相关（阶段B）
+transformers>=4.40.0
+peft>=0.10.0
+accelerate>=0.28.0
+bitsandbytes>=0.43.0
+
+# 环境
+gym>=0.26.0

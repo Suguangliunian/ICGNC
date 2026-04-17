@@ -1,0 +1,316 @@
+% sec_method.tex — Section 4: Proposed Method (compressed)
+% ICGNC 2026, Springer svproc template
+
+\section{Proposed Method}
+\label{sec:method}
+
+This section details the TAGA-LLM framework.  As shown in
+Fig.~\ref{fig:framework}, Stage~I (Sects.~\ref{sec:taga}--\ref{sec:mappo})
+trains a TAGA-MAPPO expert policy, and Stage~II (Sect.~\ref{sec:distill})
+distills it into an instruction-controllable LLM.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/Figure1.png}
+\caption{The TAGA-LLM framework.  Stage~I: TAGA-MAPPO with topology-adaptive
+graph attention and curriculum learning.  Stage~II: distillation to Qwen-4B via
+LoRA fine-tuning with chain-of-thought supervision.}
+\label{fig:framework}
+\end{figure}
+
+% --- 4.1 TAGA Mechanism ---
+\subsection{Topology-Adaptive Graph Attention}
+\label{sec:taga}
+
+Given node features $\mathbf{h}_i^{(0)} \!\in\! \mathbb{R}^{128}$ from the
+observation encoder (Sect.~\ref{sec:encoder_policy}), the attention logit
+between UAV~$i$ and neighbor~$j \!\in\! \mathcal{N}_i$ at head~$k$ is
+\begin{equation}
+  e_{ij}^{(k)} = \frac{(\mathbf{W}_Q^{(k)} \mathbf{h}_i^{(0)})^\top
+  (\mathbf{W}_K^{(k)} \mathbf{h}_j^{(0)})}{\sqrt{d_k}},
+  \label{eq:attn_logit}
+\end{equation}
+where $\mathbf{W}_Q^{(k)}, \mathbf{W}_K^{(k)} \!\in\! \mathbb{R}^{d_k \times 128}$
+project into the $k$-th head space.
+We form a \emph{modulated logit} by adding the log-domain TAGA biases to
+$e_{ij}^{(k)}$, so that the three factors act as multiplicative weights on the
+resulting attention coefficients:
+\begin{equation}
+  s_{ij}^{(k)} = e_{ij}^{(k)}
+    + \log f_d(d_{ij})
+    + \log f_m(m_i, m_j)
+    + \log f_t(\Delta t_{ij}),
+  \label{eq:taga_s}
+\end{equation}
+and normalize over neighbors with a standard softmax:
+\begin{equation}
+  \alpha_{ij}^{\text{TAGA},(k)} = \operatorname{softmax}_{j \in \mathcal{N}_i}\!\big(s_{ij}^{(k)}\big),
+  \label{eq:taga_softmax}
+\end{equation}
+equivalently:
+\begin{equation}
+  \alpha_{ij}^{\text{TAGA},(k)} = \frac{
+    \exp\!\big(e_{ij}^{(k)}\big)\, f_d\, f_m\, f_t
+  }{
+    \sum_{j' \in \mathcal{N}_i} \exp\!\big(e_{ij'}^{(k)}\big)\, f_d\, f_m\, f_t
+  },
+  \label{eq:taga}
+\end{equation}
+where $\mathcal{N}_i = \{j : (i,j) \!\in\! \mathcal{E}_t\}$ denotes the
+communication neighbors of UAV~$i$ (only terms with $j \!\in\! \mathcal{N}_i$
+appear in \eqref{eq:taga}), and the three modulation factors are:
+(i)~\emph{distance decay}
+$f_d(d_{ij}) = \exp(-\lambda_d \cdot d_{ij}/R_{\text{comm}})$, modeling
+signal attenuation with distance (the indicator
+$\mathbb{1}(d_{ij} \!\leq\! R_{\text{comm}})$ is implicit in the edge set
+$\mathcal{E}_t$);
+(ii)~\emph{task awareness}
+$f_m(m_i, m_j) = 1 + \lambda_m \cdot \mathbb{1}(m_i \!=\! m_j)$, amplifying
+attention between co-modal agents; (iii)~\emph{information freshness}
+$f_t(\Delta t_{ij}) = \exp(-\lambda_t \cdot \Delta t_{ij})$, discounting
+messages by their staleness $\Delta t_{ij}$ (cf.\ Sect.~\ref{sec:problem}).
+The coefficients $\lambda_d, \lambda_m, \lambda_t \!\in\! \mathbb{R}_{>0}$
+are learnable scalars (initialized to $1.0, 1.0, 0.1$, respectively).
+The multi-head aggregated output is:
+\begin{equation}
+  \tilde{\mathbf{h}}_i = \operatorname{LN}\!\bigg(\mathbf{W}_O
+  \concat_{k=1}^{H}\Big(\sum_{j \in \mathcal{N}_i}
+  \alpha_{ij}^{\text{TAGA},(k)} \mathbf{W}_V^{(k)} \mathbf{h}_j^{(0)}\Big)
+  + \mathbf{W}_R \mathbf{h}_i^{(0)}\bigg),
+  \label{eq:taga_agg}
+\end{equation}
+where $\concat$ denotes concatenation across $H$ heads and $\mathbf{W}_R$ is a
+residual projection handling dimension mismatch.  We stack $L\!=\!2$ such
+layers ($H\!=\!4$ heads, $d_k\!=\!16$, output dim~64); the final-layer output
+is denoted $\mathbf{h}_i^{(L)} \!\equiv\! \tilde{\mathbf{h}}_i
+\!\in\! \mathbb{R}^{64}$.
+
+% --- 4.2 Observation Encoder and Policy ---
+\subsection{Observation Encoder and Hierarchical Policy}
+\label{sec:encoder_policy}
+
+The observation encoder has two branches:
+\begin{equation}
+  \mathbf{c}_i = \phi_{\text{cnn}}(\mathbf{x}_i) \in \mathbb{R}^{128},\qquad
+  \mathbf{s}_i = \phi_{\text{mlp}}(\mathbf{u}_i) \in \mathbb{R}^{64},
+  \label{eq:enc_branch}
+\end{equation}
+where $\phi_{\text{cnn}}$
+($\operatorname{Conv}_{5\to32}^{5\times5} \!\to\!
+\operatorname{Conv}_{32\to64}^{5\times5} \!\to\!
+\operatorname{AvgPool}$) encodes the
+$5\!\times\!11\!\times\!11$ local grid $\mathbf{x}_i$, and
+$\phi_{\text{mlp}}$ ($6 \!\to\! 32 \!\to\! 64$) encodes the self-state
+vector $\mathbf{u}_i$.  The concatenated features are linearly projected:
+\begin{equation}
+  \mathbf{h}_i^{(0)} = \phi_o([\mathbf{c}_i;\, \mathbf{s}_i])
+  = \mathbf{W}_E [\mathbf{c}_i;\, \mathbf{s}_i] + \mathbf{b}_E
+  \;\in\; \mathbb{R}^{128},
+  \label{eq:enc_proj}
+\end{equation}
+which serves as input to the TAGA layers.
+
+Let $\tilde{\mathbf{h}}_i = \mathbf{h}_i^{(L)} \!\in\! \mathbb{R}^{64}$
+denote the output of the second TAGA layer.  We form
+\begin{equation}
+  \mathbf{f}_i = [\tilde{\mathbf{h}}_i;\, \mathbf{h}_i^{(0)}]
+  \;\in\; \mathbb{R}^{192}.
+  \label{eq:feat_concat}
+\end{equation}
+The mode, search, and attack heads are implemented as MLPs with one hidden
+layer of width~128:
+\begin{equation}
+  \boldsymbol{\ell}_i^{m} = g_m(\mathbf{f}_i) \in \mathbb{R}^{2},\quad
+  \boldsymbol{\ell}_i^{s} = g_s(\mathbf{f}_i) \in \mathbb{R}^{9},\quad
+  \boldsymbol{\ell}_i^{a} = g_a(\mathbf{f}_i) \in \mathbb{R}^{10}.
+  \label{eq:logits}
+\end{equation}
+Let $m_i \!\in\! \{\text{search},\, \text{attack}\}$ and
+$a_i \!\in\! \mathcal{A}_{m_i}$, where
+$|\mathcal{A}_{\text{search}}| \!=\! 9$ (8 directions + stay) and
+$|\mathcal{A}_{\text{attack}}| \!=\! 10$ (9 moves + fire).
+The hierarchical policy factorizes as
+\begin{equation}
+  \pi(m_i, a_i \mid \mathbf{f}_i)
+  = \pi^{m}(m_i \mid \mathbf{f}_i)\;
+    \pi(a_i \mid m_i, \mathbf{f}_i),
+  \label{eq:policy}
+\end{equation}
+with
+\begin{align}
+  \pi^{m}(m_i \mid \mathbf{f}_i)
+    &= \operatorname{softmax}(\boldsymbol{\ell}_i^{m}), \label{eq:pi_mode}\\
+  \pi(a_i \mid m_i\!=\!\text{search},\, \mathbf{f}_i)
+    &= \operatorname{softmax}\!\big(\operatorname{mask}_s(\boldsymbol{\ell}_i^{s})\big),
+    \label{eq:pi_search}\\
+  \pi(a_i \mid m_i\!=\!\text{attack},\, \mathbf{f}_i)
+    &= \operatorname{softmax}\!\big(\operatorname{mask}_a(\boldsymbol{\ell}_i^{a})\big),
+    \label{eq:pi_attack}
+\end{align}
+where $\operatorname{mask}_s$ and $\operatorname{mask}_a$ set invalid-action
+logits to $-\infty$ before normalization.
+
+% --- 4.3 MAPPO Training ---
+\subsection{MAPPO Training with Curriculum Learning}
+\label{sec:mappo}
+
+We train with Centralized Training with Decentralized Execution (CTDE).
+A centralized critic receives mean-pooled TAGA features and outputs a scalar
+state value:
+\begin{equation}
+  \bar{\mathbf{h}}_t = \frac{1}{N_t}\sum_{i=1}^{N_t}
+  \tilde{\mathbf{h}}_{i,t},\qquad
+  V_\phi(\bar{\mathbf{h}}_t) \in \mathbb{R}.
+  \label{eq:critic}
+\end{equation}
+Let $u_{i,t} = (m_{i,t},\, a_{i,t})$ denote the hierarchical action of
+agent~$i$ at time~$t$.  Its probability factorizes as
+\begin{equation}
+  \pi_\theta(u_{i,t} \mid \mathbf{f}_{i,t})
+  = \pi_\theta^{m}(m_{i,t} \mid \mathbf{f}_{i,t})\;
+    \pi_\theta(a_{i,t} \mid m_{i,t},\, \mathbf{f}_{i,t}).
+  \label{eq:mappo_pi}
+\end{equation}
+For shared-parameter MAPPO, the importance ratio is
+\begin{equation}
+  r_{i,t}(\theta) = \frac{
+    \pi_\theta(u_{i,t} \mid \mathbf{f}_{i,t})
+  }{
+    \pi_{\theta_{\text{old}}}(u_{i,t} \mid \mathbf{f}_{i,t})
+  }.
+  \label{eq:is_ratio}
+\end{equation}
+With a shared team reward, we use a single centralized value function and a
+shared GAE estimate~\cite{schulman2016gae}:
+\begin{equation}
+  \delta_t = r_t^{\text{team}} + \gamma\, V_\phi(\bar{\mathbf{h}}_{t+1})
+  - V_\phi(\bar{\mathbf{h}}_t),\qquad
+  \hat{A}_t = \sum_{l \ge 0}(\gamma \lambda_{\text{GAE}})^l \delta_{t+l},
+  \label{eq:gae}
+\end{equation}
+and define the return target as
+$R_t = \hat{A}_t + V_\phi(\bar{\mathbf{h}}_t)$.
+The MAPPO loss is then
+\begin{equation}
+  \mathcal{L}_{\text{MAPPO}}
+  = -\mathbb{E}_{t,i}\!\Big[\min\!\big(
+      r_{i,t}(\theta)\,\hat{A}_t,\;
+      \operatorname{clip}(r_{i,t}(\theta),\,1\!-\!\epsilon,\,
+      1\!+\!\epsilon)\,\hat{A}_t
+    \big)\Big]
+  + c_v\,\mathbb{E}_{t}\!\big[(V_\phi(\bar{\mathbf{h}}_t) - R_t)^2\big]
+  - c_e\,\mathbb{E}_{t,i}\!\big[
+      \mathcal{H}[\pi_\theta(\cdot \mid \mathbf{f}_{i,t})]
+    \big],
+  \label{eq:ppo}
+\end{equation}
+where $\gamma\!=\!0.99$, $\lambda_{\text{GAE}}\!=\!0.95$,
+$\epsilon\!=\!0.2$, $c_v\!=\!0.5$, $c_e\!=\!0.01$.
+Rewards are normalized with running mean and variance.  Training uses a
+three-stage curriculum: easy (3~UAVs, $50^2$ grid) $\to$ medium (6~UAVs,
+$75^2$) $\to$ hard (10~UAVs, $100^2$), advancing when the 20-episode moving
+average of search coverage exceeds a stage-specific threshold.
+The full Stage~I training completes in ${\sim}10$\,h on a server with
+$8\!\times\!$A100 GPUs.
+
+% --- 4.4 TAGA-LLM Distillation ---
+\subsection{Stage II: TAGA-LLM Distillation}
+\label{sec:distill}
+
+The trained TAGA-MAPPO policy achieves strong performance but remains a black
+box.  Stage~II distills it into an LLM for interpretability and instruction
+control.
+
+\paragraph{Data collection.}
+Let $\pi_E$ denote the converged TAGA-MAPPO expert.  We deploy $\pi_E$ for
+3{,}000 episodes across three scenario configurations (varying target/threat
+layouts).  From each episode~$e$ we uniformly sample one \emph{anchor scene}
+per agent, yielding $N_{\text{anchor}} \!=\! 3{,}000$ distinct
+observation--action pairs.  For each anchor scene with observation~$o_t$ and
+directive~$d$, the expert action and training target are
+\begin{equation}
+  a_t^{*} = \pi_E(o_t,\, d),\qquad
+  y_t = [\texttt{<think>},\, r_t,\, \texttt{</think>},\,
+         \texttt{<act>},\, a_t^{*},\, \texttt{</act>}],
+  \label{eq:teacher}
+\end{equation}
+where $r_t$ is a template-generated rationale that verbalizes the key
+observation features and the rule triggered by the expert policy (not produced
+by an LLM).  To improve instruction controllability, each anchor scene is
+re-labeled under all five directives
+(\textsc{bal}/\textsc{sch}/\textsc{atk}/\textsc{evd}/\textsc{coo}), producing
+$N_{\text{cf}} = 5 \times N_{\text{anchor}} = 15{,}000$ counterfactual
+samples.  The combined pool is
+$N_{\text{raw}} = N_{\text{anchor}} + N_{\text{cf}} = 18{,}000$; after
+filtering the top-75\% by episode return, the final dataset contains
+$|\mathcal{D}| \approx 45$K training samples (some episodes contribute
+multiple agents, and the 75\% filter is applied per-episode before
+aggregation).
+
+\paragraph{Prompt encoding.}
+Each sample is a structured prompt comprising four blocks: (a)~self-state
+(position, velocity, energy, mode), (b)~neighbor list sorted by ascending
+distance, where each entry is annotated with TAGA-derived signal quality
+(H/M/L, from joint thresholds on $(f_d, f_t)$) and numeric freshness ($f_t$),
+(c)~visible target list with
+coordinates and status, and (d)~an operational instruction
+(\textsc{bal}/\textsc{sch}/\textsc{atk}/\textsc{evd}/\textsc{coo}).
+Priority-based truncation (max 256 tokens) removes the most distant neighbors
+first to stay within the context window.
+
+\paragraph{Training.}
+We fine-tune Qwen-4B~\cite{qwen2024} with LoRA~\cite{hu2022lora}
+($r\!=\!16$, $\alpha\!=\!32$, dropout 0.05) on all attention/FFN projections
+($\sim$6.3M trainable params).  Each sample follows the target format in
+\eqref{eq:teacher}.  Let $\mathcal{M}_{\text{think}}$ and
+$\mathcal{M}_{\text{act}}$ denote the sets of token positions within the
+\texttt{<think>} and \texttt{<act>} spans, respectively.  The supervised
+fine-tuning loss is a weighted sum of the two components:
+\begin{equation}
+  \mathcal{L}_{\text{SFT}}
+  = -\frac{\lambda_{\text{act}}}{|\mathcal{M}_{\text{act}}|}
+    \sum_{t \in \mathcal{M}_{\text{act}}} \log p_\theta(x_t \mid x_{<t})
+    -\frac{\lambda_{\text{think}}}{|\mathcal{M}_{\text{think}}|}
+    \sum_{t \in \mathcal{M}_{\text{think}}} \log p_\theta(x_t \mid x_{<t}),
+  \label{eq:sft}
+\end{equation}
+where $\lambda_{\text{act}} \!=\! 1.0$ and
+$\lambda_{\text{think}} \!=\! 0.5$, reflecting that action correctness is the
+primary objective while the rationale serves as an auxiliary supervision signal
+(the template-generated rationale provides structured reasoning cues but is not
+a ground-truth explanation).
+Training completes in $\sim$37\,min on a single A100 (from the same
+$8\!\times\!$A100 server) with bf16 and gradient
+checkpointing.  At inference, greedy decoding with 4-bit quantization achieves
+$\sim$70\,ms per step.
+
+The complete training procedure is summarized in Algorithm~\ref{alg:taga_llm}.
+
+\begin{algorithm}[t]
+\caption{Two-stage TAGA-LLM training and distillation procedure.}
+\label{alg:taga_llm}
+\small
+\begin{algorithmic}[1]
+\REQUIRE Environment config $\mathcal{C}$, pre-trained Qwen-4B, curriculum thresholds $\{\tau_1, \tau_2\}$
+\ENSURE Distilled TAGA-LLM agent
+\STATE \textit{Stage I --- TAGA-MAPPO training}
+\STATE Initialize actor $\pi_\theta$, critic $V_\phi$, TAGA params $\lambda_d\!=\!1.0,\, \lambda_m\!=\!1.0,\, \lambda_t\!=\!0.1$
+\STATE Set curriculum stage $\gets$ \textsc{easy} (3 UAVs, $50^2$ grid)
+\FOR{update $= 1, \ldots, T_{\max}$}
+  \STATE Collect rollout episodes with current $\pi_\theta$
+  \STATE Encode observations $\to$ TAGA features $\tilde{\mathbf{h}}_i$ (Eq.~\ref{eq:taga_s}--\ref{eq:taga_agg})
+  \STATE Compute actions via hierarchical policy (Sect.~\ref{sec:encoder_policy})
+  \STATE Update $\theta, \phi$ via clipped PPO (Eq.~\ref{eq:ppo})
+  \IF{20-episode moving avg.\ coverage $> \tau_{\text{stage}}$}
+    \STATE Advance curriculum stage
+  \ENDIF
+\ENDFOR
+\STATE \textit{Stage II --- LLM distillation}
+\STATE Deploy converged $\pi_E \!=\! \pi_\theta^*$ for 3K episodes; sample $N_{\text{anchor}}\!=\!3$K anchor scenes
+\STATE Re-label each anchor under 5 directives $\to$ $N_{\text{cf}}\!=\!15$K counterfactual samples
+\STATE Filter top-75\% episodes $\to$ dataset $\mathcal{D}$ (${\approx}\,45$K samples)
+\STATE Attach LoRA ($r\!=\!16$, $\alpha\!=\!32$) to Qwen-4B
+\STATE Fine-tune on $\mathcal{D}$ with weighted SFT loss (Eq.~\ref{eq:sft}; $\lambda_{\text{act}}\!=\!1.0$, $\lambda_{\text{think}}\!=\!0.5$)
+\RETURN TAGA-LLM agent
+\end{algorithmic}
+\end{algorithm}

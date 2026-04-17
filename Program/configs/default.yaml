@@ -1,0 +1,144 @@
+# ============================================================
+# TAGA-MAPPO / TAGA-LLM 全局配置
+# ============================================================
+
+# --- 环境参数 ---
+env:
+  grid_size: 100            # 战场网格大小
+  n_uavs: 10                # UAV 数量
+  n_targets: 5              # 目标数量
+  n_threats: 7              # 威胁区数量
+  obs_radius: 5             # 观测半径（11×11 网格 = 2*5+1）
+  grid_channels: 5          # 局部网格通道数
+  state_dim: 6              # 自身状态维度 [x, y, vx, vy, energy, mode]
+  R_comm: 20.0              # 通信半径
+  max_steps: 200            # 每回合最大步数
+  threat_damage: 0.3        # 进入威胁区的伤害值
+  energy_per_step: 0.005    # 每步能量消耗
+
+# --- 奖励函数权重 ---
+reward:
+  search_coverage: 0.1      # 搜索覆盖奖励
+  target_discover: 1.0      # 发现目标奖励
+  target_destroy: 5.0       # 摧毁目标奖励
+  threat_penalty: -2.0      # 进入威胁区惩罚
+  uav_lost_penalty: -10.0   # UAV 损失惩罚
+  cooperative_bonus: 3.0    # 协同攻击奖励（≥2架UAV同时攻击）
+  time_penalty: -0.01       # 每步时间惩罚
+
+# --- TAGA-GAT 模型参数 ---
+model:
+  obs_encoder:
+    grid_channels: 5
+    state_dim: 6
+    cnn_out_dim: 128
+    mlp_hidden: 64
+  taga:
+    in_dim: 128
+    out_dim: 64
+    n_heads: 4
+    n_layers: 2
+    R_comm: 20.0
+  policy:
+    hidden_dim: 128
+    n_modes: 2               # 搜索 / 攻击
+    n_actions_per_mode: 10   # 每种模式下的动作数
+  critic:
+    hidden_dim: 128
+
+# --- MAPPO 训练超参数 ---
+mappo:
+  lr: 3.0e-4
+  gamma: 0.99
+  lambda_gae: 0.95
+  epsilon_clip: 0.2
+  entropy_coef: 0.01
+  value_loss_coef: 0.5
+  max_grad_norm: 0.5
+  n_parallel_envs: 16
+  rollout_steps: 128
+  mini_batch_size: 64
+  ppo_epochs: 10
+  total_updates: 5000        # 总更新次数
+  log_interval: 100          # 日志打印间隔
+  save_interval: 500         # 模型保存间隔
+
+# --- 课程学习调度 ---
+curriculum:
+  stages:
+    - name: "stage_1_easy"
+      n_uavs: 3
+      n_targets: 2
+      n_threats: 0
+      grid_size: 30             # 缩小网格使覆盖率可达
+      advance_threshold: 0.45   # 45%覆盖率即可晋级（3架UAV在30×30上合理）
+      min_updates: 30           # 快速验证用小值
+    - name: "stage_2_medium"
+      n_uavs: 6
+      n_targets: 3
+      n_threats: 3
+      grid_size: 50
+      advance_threshold: 0.35   # 6架UAV在50×50上35%覆盖率
+      min_updates: 60
+    - name: "stage_3_hard"
+      n_uavs: 10
+      n_targets: 5
+      n_threats: 7
+      grid_size: 100
+      advance_threshold: 0.0   # 最终阶段，不再切换
+      min_updates: 100
+
+# --- Qwen LoRA 微调参数 ---
+qwen:
+  model_name: "Qwen/Qwen2.5-4B"   # 基座模型
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
+  training:
+    batch_size: 8
+    gradient_accumulation_steps: 4
+    num_epochs: 2
+    lr: 2.0e-4
+    warmup_ratio: 0.05
+    weight_decay: 0.01
+    bf16: true
+    gradient_checkpointing: true
+    max_seq_length: 2048
+    logging_steps: 10
+    save_steps: 200
+
+# --- 数据生成参数 ---
+data_gen:
+  n_expert_episodes: 3000     # 专家轨迹回合数
+  n_counterfactual: 15000     # 反事实数据条数
+  target_total: 45000         # 目标总数据量
+  quality_threshold: 0.75     # 质量筛选阈值（top-75%）
+  output_dir: "data/generated"
+  scenarios:
+    - {n_uavs: 5, n_targets: 3, n_threats: 2, grid_size: 60}
+    - {n_uavs: 8, n_targets: 4, n_threats: 5, grid_size: 80}
+    - {n_uavs: 10, n_targets: 5, n_threats: 7, grid_size: 100}
+
+# --- 评估参数 ---
+eval:
+  n_episodes: 20              # 评估回合数
+  metrics:
+    - search_coverage          # 搜索覆盖率
+    - target_destroy_rate      # 目标摧毁率
+    - completion_time          # 任务完成时间
+    - uav_survival_rate        # UAV 存活率
+    - cooperative_attack_ratio # 协同攻击比例
+  significance_level: 0.05    # Welch's t-test 显著性水平
+  output_dir: "eval/results"
+
+# --- 路径配置 ---
+paths:
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  data_dir: "data/generated"
+  eval_dir: "eval/results"
+
+# --- 随机种子 ---
+seed: 42

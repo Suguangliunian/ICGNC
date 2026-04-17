@@ -1,0 +1,103 @@
+% main.tex — TAGA-LLM: ICGNC 2026
+% Springer svproc template
+\documentclass{styles/svproc}
+
+% --- 推荐宏包 ---
+\usepackage{url}
+\def\UrlFont{\rmfamily}
+\usepackage{marvosym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{multirow}
+\usepackage{bm}
+\usepackage{paralist}   % inparaenum 行内列表
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+
+% 自定义命令
+\DeclareMathOperator{\concat}{\|}  % 拼接符号
+
+\begin{document}
+\mainmatter
+
+% ============================
+% 标题
+% ============================
+\title{TAGA-LLM: Topology-Adaptive Graph Attention Informed\\
+Large Language Model for Multi-UAV Cooperative\\
+Search and Attack Mission Planning}
+
+\titlerunning{TAGA-LLM for Multi-UAV Mission Planning}
+
+\author{Xinrui Guo\inst{1,2} \and Jiang Zhao\inst{3} \and Yingxun Wang\inst{4}
+\and Pei Chi\inst{4}}
+
+\authorrunning{Xinrui Guo et al.}
+
+\tocauthor{Xinrui Guo, Jiang Zhao, Yingxun Wang, Pei Chi}
+
+\institute{
+School of Artificial Intelligence, Beihang University, Beijing 100191, China
+\and
+Zhongguancun Academy, Beijing 100191, China
+\and
+School of Automation Science and Electrical Engineering, Beihang University, Beijing 100191, China
+\and
+Institute of Unmanned System, Beihang University, Beijing 100191, China
+\\
+\email{XinruiGuo@buaa.edu.cn}
+}
+
+\maketitle
+
+% ============================
+% 摘要
+% ============================
+\begin{abstract}
+Cooperative search and attack missions for unmanned aerial vehicle (UAV) swarms
+require real-time coordination under dynamic communication topologies, yet
+existing approaches either rely on hand-crafted heuristics that lack
+adaptability or employ multi-agent reinforcement learning (MARL) policies that
+offer no interpretability.  We propose TAGA-LLM, a two-stage framework
+that first trains a Topology-Adaptive Graph Attention enhanced Multi-Agent PPO
+(TAGA-MAPPO) expert policy, then distills its decision-making capability into a
+Qwen-4B large language model via LoRA fine-tuning with chain-of-thought
+supervision.  The TAGA mechanism augments standard graph attention with three
+learnable, physics-informed factors---distance decay, task awareness, and
+information freshness---to model realistic communication constraints. Through
+expert trajectory collection, counterfactual data augmentation, and a
+topology-aware prompt encoding scheme, the distilled LLM achieves
+instruction-controllable and interpretable mission planning while preserving
+cooperative performance.  We evaluate the framework on a $100\!\times\!100$ grid
+battlefield with 10~UAVs, 5~targets, and 7~threat zones, assessing both
+cooperative task performance and the quality of chain-of-thought reasoning
+across five operational directives.  A short CPU sanity run (random versus
+greedy TAGA-MAPPO after $90$~PPO updates) confirms stable optimization under
+curriculum scheduling and improved search coverage; full-scale statistical
+comparisons are deferred to the extended evaluation campaign.
+\keywords{multi-UAV cooperation, graph attention network, large language model,
+multi-agent reinforcement learning, knowledge distillation}
+\end{abstract}
+
+% ============================
+% 正文章节
+% ============================
+\input{sec_introduction}
+\input{sec_related}
+\input{sec_problem}
+\input{sec_method}
+\input{sec_experiments}
+\input{sec_conclusion}
+
+% ============================
+% 参考文献
+% ============================
+\bibliographystyle{styles/bibtex/splncs03_unsrt}
+\bibliography{references}
+
+\end{document}

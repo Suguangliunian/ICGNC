@@ -1,0 +1,48 @@
+% sec_related.tex — Section 2: Related Work (compressed)
+% ICGNC 2026, Springer svproc template
+
+\section{Related Work}
+\label{sec:related}
+
+We briefly review multi-agent communication learning, LLM-based decision
+systems, policy distillation, and multi-UAV planning, and position TAGA-LLM
+relative to these lines of work.
+
+\paragraph{Communication in MARL.}
+CommNet~\cite{sukhbaatar2016learning} broadcasts mean-pooled messages;
+TarMAC~\cite{das2019tarmac} adds attention-based targeting;
+DGN~\cite{jiang2020graph} uses graph convolutions but assumes a static
+adjacency matrix.  QMIX~\cite{rashid2018qmix} and
+MAPPO~\cite{yu2022surprising} address credit assignment without modeling
+physical communication constraints.  Our TAGA mechanism injects three
+physics-informed factors directly into the attention computation, treating the
+graph as a dynamic, quality-variable channel.
+
+\paragraph{LLMs for decision-making.}
+ReAct~\cite{yao2023react} interleaves reasoning with actions;
+Reflexion~\cite{shinn2023reflexion} adds self-reflection;
+Voyager~\cite{wang2023voyager} generates executable code;
+SayCan~\cite{ahn2022saycan} grounds LLM plans in affordances.  These
+approaches either operate in single-agent settings or rely on pre-defined
+protocols, and none encodes topology-dependent multi-agent states into LLM
+prompts while preserving MARL-learned cooperative strategies.
+
+\paragraph{Knowledge distillation for policy transfer.}
+Policy distillation compresses a teacher policy into a smaller
+student~\cite{rusu2016policy}.  Recent efforts explore distilling RL-learned
+behaviors into language models for
+interpretability~\cite{brown2020language,li2023camel}, yet existing pipelines
+do not account for graph-structured multi-agent communication or
+topology-dependent state encoding.  Our Stage~II distillation combines
+LoRA-based parameter efficient fine-tuning~\cite{hu2022lora} with
+topology-aware prompt encoding and chain-of-thought supervision to preserve
+cooperative strategies in the distilled LLM.
+
+\paragraph{Multi-UAV planning.}
+Classical methods include potential fields~\cite{ge2002dynamic}, auction-based
+allocation~\cite{choi2009consensus}, and metaheuristics~\cite{dorigo2006ant}.
+MARL-based approaches such as MADDPG~\cite{lowe2017multi} and
+HAPPO~\cite{kuba2022trust} train end-to-end policies, but for homogeneous
+swarms, parameter-sharing MAPPO is more efficient~\cite{yu2022surprising}.  Our
+work builds on MAPPO with TAGA for communication-aware coordination and bridges
+the MARL--LLM gap through policy distillation.

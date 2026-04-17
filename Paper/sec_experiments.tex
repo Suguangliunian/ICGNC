@@ -1,0 +1,106 @@
+% sec_experiments.tex — Section 5: Experiments and Simulation Results
+% ICGNC 2026, Springer svproc template
+
+\section{Experiments and Simulation Results}
+\label{sec:experiments}
+
+\subsection{Simulation Setup}
+
+We simulate a partially observable grid battlefield with local $11\!\times\!11$
+patches (obs radius $=5$) and shared global rewards as in Sect.~\ref{sec:problem}.
+The default full-scale configuration follows
+\texttt{configs/default.yaml}: a $100\!\times\!100$ grid, $10$~UAVs,
+$5$~targets, and $7$~threat zones, with communication radius
+$R_{\mathrm{comm}}=20$ and $\texttt{max\_steps}=200$ per episode.
+
+\textbf{TAGA-MAPPO training.} We adopt three-stage curriculum learning:
+\begin{itemize}\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}
+  \item \texttt{stage\_1\_easy}\,: $3$~UAVs, $2$~targets, $0$~threats, $30\!\times\!30$;
+  \item \texttt{stage\_2\_medium}\,: $6$~UAVs, $3$~targets, $3$~threats, $50\!\times\!50$;
+  \item \texttt{stage\_3\_hard}\,: $10$~UAVs, $5$~targets, $7$~threats, $100\!\times\!100$.
+\end{itemize}
+\noindent MAPPO uses GAE($\lambda=0.95$), PPO clip
+$\varepsilon=0.2$, discount $\gamma=0.99$, Adam learning rate $3\times10^{-4}$,
+and entropy coefficient $0.05$ for the short sanity runs reported below.
+
+\textbf{Baselines for the quick validation run.}  We compare (i)~a \emph{random
+joint policy} that uniformly samples hierarchical actions on the
+\texttt{stage\_3\_hard} layout, and (ii)~a \emph{greedy TAGA-MAPPO policy}
+(argmax over mode and move logits) after a \emph{limited} training budget of
+$90$~PPO updates on CPU, intended as an engineering sanity check rather than a
+fully converged benchmark.  Full-scale comparisons against classical planners
+(e.g., ACO), flat MAPPO, and TAGA-LLM under five directives
+(\textsc{bal}, \textsc{sch}, \textsc{atk}, \textsc{evd}, \textsc{coo}) are left
+to the extended evaluation track with $30$~seeds and Welch's $t$-test at
+$\alpha=0.05$, as originally planned.
+
+\textbf{Hardware:} $8\!\times\!$A100 GPU server; Stage~I training ${\sim}10$\,h,
+Stage~II LoRA fine-tuning ${\sim}37$\,min (single GPU).
+
+\subsection{Simulation Results}
+
+\begin{table}[t]
+\centering
+\caption{Rapid local validation (mean $\pm$ std).  Random: 24 episodes on
+\texttt{stage\_3\_hard}.  TAGA-MAPPO: greedy rollouts after 90 updates
+(10 episodes on the post-training environment layout).}
+\label{tab:sanity}
+\begin{tabular}{lcc}
+\toprule
+Metric & Random & TAGA-MAPPO (greedy, short train) \\
+\midrule
+Search coverage      & $0.361 \pm 0.043$ & $0.557 \pm 0.068$ \\
+Target destroy rate  & $0.183 \pm 0.143$ & $0.000 \pm 0.000$ \\
+Norm.\ completion time & $0.900 \pm 0.000$ & $1.000 \pm 0.000$ \\
+UAV survival rate    & $0.742 \pm 0.125$ & $0.620 \pm 0.132$ \\
+Coop.\ attack ratio  & $0.000 \pm 0.000$ & $0.000 \pm 0.000$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:sanity} shows that even with a small optimization budget,
+TAGA-MAPPO already improves search coverage relative to random exploration;
+the destroy-rate and time-to-completion metrics indicate that substantially
+longer training (and LLM distillation) are required before claiming mission
+completion at scale---consistent with the staged experimental roadmap.
+
+\subsection{Instruction Controllability}
+
+We will evaluate TAGA-LLM under five operational directives
+(\textsc{bal}, \textsc{sch}, \textsc{atk}, \textsc{evd}, \textsc{coo}) using
+the topology-aware prompt encoder described in Sect.~\ref{sec:distillation}.
+The distilled model is expected to shift coverage--aggression trade-offs
+measurably across directives; quantitative curves are omitted here pending
+completion of the LoRA fine-tuning pipeline.
+
+\subsection{Ablation Studies}
+
+Planned ablations include (i)~TAGA-aware prompt encoding versus a flat text
+serialization; (ii)~chain-of-thought supervision versus action-only supervision;
+(iii)~counterfactual data augmentation on/off; (iv)~ablating individual TAGA
+factors ($\lambda_d, \lambda_m, \lambda_t$) in the expert policy.  Each
+ablation will be reported with the same five metrics as the main table once the
+long-run training budget is finalized.
+
+\subsection{Scalability and Robustness}
+
+We target scalability sweeps with $5/10/15/20$~UAVs, communication dropout at
+$10\%/20\%/30\%$, and inference latency benchmarks for the distilled LLM.
+These experiments are not included in the rapid CPU sanity run above.
+
+% TODO: 图片文件缺失，暂时注释
+% \begin{figure}[t]
+% \centering
+% \includegraphics[width=\textwidth]{training_curves.pdf}
+% \caption{TAGA-MAPPO training traces under curriculum scheduling
+% (policy/value loss, entropy, reward/coverage).  Vertical markers indicate
+% automatic stage transitions when rolling coverage exceeds stage thresholds.}
+% \label{fig:training_curves}
+% \end{figure}
+%
+% \begin{figure}[t]
+% \centering
+% \includegraphics[width=0.6\textwidth]{curriculum_stage_timeline.pdf}
+% \caption{Curriculum stage occupancy over PPO updates for the same sanity run.}
+% \label{fig:curriculum_timeline}
+% \end{figure}

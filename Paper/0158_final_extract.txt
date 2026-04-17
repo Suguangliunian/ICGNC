@@ -1,0 +1,453 @@
+FILE 0158_final.pdf PAGES 10
+
+===== PAGE 1 =====
+
+Robust Guidance Law Design of Launch Vehicles via 
+Deep Reinforcement Learning Algorithm 
+Chenhui Jia 1, Xiaodong Liu 1, Xiaomin Li1, Qinghai Gong 1, Zhaolei Wang 1, 
+Ran Li1 
+1 National Key Laboratory of Aerospace Intelligent Control Technology, Beijing Aerospace 
+Automatic Control Institute, Beijing, China 
+championjch@sina.com 
+Abstract. The design of guidance laws for launch vehicles in the gale area ne-
+cessitates a delicate balance between achieving high control accuracy, ensuring 
+robustness against significant disturbances, and minimizing overload to safe 
+guard against potential damage to the launch vehicle ’s structure. In this paper, 
+we develop network formed adaptive guidance laws for various flight tasks, 
+which are trained with a reinforcement learning algorithm to address the chal-
+lenges mention above. The simulation results demonstrate that the guidance 
+laws trained with our algorithm exhibit robust characteristics under the influ-
+ence of various wind disturbances and accurately track the desired flight trajec-
+tory with high precision throughout the flight process . Furthermore, in the gale 
+area, the guidance laws enable the launch vehicle to operate with reduced over-
+load while maintaining an acceptable level of tracking accuracy . This algorithm 
+represents a promising candidate for designing guidance laws for launch vehi-
+cles in the gale area or under unknown disturbances during the flight process. 
+Keywords: Adaptive Guidance Law, Reinforcement Learning, Soft Actor-
+Critic, Overload Reduction, Launch Vehicles. 
+1 Introduction 
+Launch vehicle flight control design, as a pivotal technology in the control systems of 
+launch vehicles, has garnered extensive attention across the aerospace field  [1-3]. 
+During the flight control process of the ascending phase after the launch of the launch 
+vehicle, the engineers not only need to consider the influence of wind interference but 
+also need to consider the importance of reducing the overload of the launch vehicle in 
+the gale area. Due to the structural characteristics of the launch vehicle wi th large 
+slenderness ratio, it is necessary to reduce the overload of the launch vehicle to a safe 
+range to prevent the launch vehicle from the damage of the vehicle body. As the over-
+load reduction may lead to the loss of the orbit injection accuracy during the flight 
+process, especially under the disturbance of the wind in the gale area, we may consid-
+er the guidance of the launch vehicle as a trade -off between the control accuracy and 
+the overload reduction. Therefore an adaptive guidance law is required w hich not can 
+only control the launch vehicle under the condition of unknown high disturbance, but 
+
+===== PAGE 2 =====
+
+2 
+also balance the control accuracy and the overload reduction to make the flight pro-
+cess of the launch vehicle achieves a satisfied flight process. 
+As a new intelligent planning and decision algorithm, deep reinforcement learning 
+algorithm (DRL algorithm for short) which combines the traditional reinforcement 
+learning decision -making algorithm and the deep learning algorithm, has greatly en-
+hanced the decision -making ability of agents through deep neural networks. In recent 
+years, deep reinforcement learning has achieved great achievements on chess games 
+[4], complex RTS computer games [5], multi -agent games [6], robots control [7], and 
+autopilots [8].  
+Among variety of the DRL algorithms, Soft Actor -Critic algorithm [9 -10] as an 
+off-policy stochastic policy gradient algorithm [11] which is utilized to solve the 
+problems of continuous action space problems. Compared with the deterministic poli-
+cy gradient algorithm, such as DDPG [12] or TD3 [13], SAC algorithm demonstrates 
+its more powerful exploration ability which encourages the agent to explorer new 
+policies while keeping the rewards not significantly reduced. Besides, SAC algorithm 
+inherits the experience replay mechanism of the off -policy DRL algorithm and the 
+clipped double Q learning mechanism of TD3 algorithm so that the algorithm will 
+realize the fast convergence during the training process without the overestimation of 
+the accumulate returns. Due to the characteristics above, SAC algorithm is considered 
+as a suitable method to solve the problem s of continuous action space with complex 
+reward. In this paper, we train the guidance laws of launch vehicle with SAC algo-
+rithm to solve the desired trajectory tracking problem in different disturbances of 
+wind field and the overload relief problem during the flight process after launch.  
+The rest of this paper is organized as follows. In Section 2, we will build the math-
+ematic model of a launch vehicle and construct Markov decision process of two flight 
+task. In Section 3, we will introduce the design of guidance law training agent basing 
+on SAC algorithm. In Section 4, we will carry out simulations of the two flight tasks 
+with the guidance laws designed with our algorithm. We will draw a conclusion in 
+Section 5. 
+2 Problem Statement 
+In this paper, we consider the Ares -I launch vehicle [14] as the object to realize the 
+position tracking control with load relief strategy under different conditions of wind 
+fields. Without losing generality, we only consider the flight  control of longitudinal 
+plane. During the ascending flight phase, the model of Ares -I launch vehicle in the 2 -
+D longitudinal plane is presented as: 
+{
+[𝑥̇
+𝑧̇] = [𝑣𝑥
+𝑣𝑧
+]
+𝑚[𝑣𝑥̇
+𝑣𝑧̇ ] = 𝑻𝒃𝟐𝒈(𝑭𝒂𝒆𝒓𝒐 + 𝑭𝑻𝒉𝒓𝒖𝒔𝒕) − 𝑚𝒈
+                                (1) 
+where 𝑚 is the current mass of the launch vehicle. 𝑥 > 0 represents the current alti-
+tude of the launch vehicle, 𝑧 < 0 is the current geographic distance between the 
+
+===== PAGE 3 =====
+
+3 
+launch vehicle and the launch point. 𝑣𝑥 and 𝑣z denote the velocity components of the 
+launch vehicle on the x-axis and z-axis, respectively. 𝑭𝒂𝒆𝒓𝒐 represents the aerodynam-
+ic force vector of the launch vehicle during the flight process. 𝑭𝑻𝒉𝒓𝒖𝒔𝒕 = [𝐹𝑡ℎ, 0]𝑻 
+represents the current thrust vector of the launch vehicle. 𝒈 = [𝑔, 0]𝑻 is the gravita-
+tional acceleration vector, where 𝑔 is the gravitational acceleration of the current posi-
+tion. In this paper, ignoring the influence of earth curvature, 𝑔 is calculated as: 
+𝑔 = 𝑔0
+𝑅2
+(𝑥+𝑅)2                                                      (2) 
+where is the average earth radius, 𝑔0 is the gravitational acceleration at the sea level. 
+The matrix 𝑻𝒃𝟐𝒈 represents the convert matrix from the inertial coordinate to the body 
+coordinate of the launch vehicle, where: 
+𝑻𝒃𝟐𝒈 = [ 𝑐𝑜𝑠𝜑 𝑠𝑖𝑛𝜑
+−𝑠𝑖𝑛𝜑 𝑐𝑜𝑠𝜑]                                           (3) 
+where 𝜑 is the pitch angle of the launch vehicle. In this paper, we assume that the 
+attitude control loop of the launch vehicle is ideal and consider 𝜑 as the output of the 
+guidance law to control the launch vehicle follow the desired trajectory. 
+The aerodynamic force vector 𝑭𝒂𝒆𝒓𝒐 is calculated as:  
+𝑭𝒂𝒆𝒓𝒐 = 𝑻𝒃𝟐𝒈[𝐹𝑎𝑒𝑟𝑜_𝑏𝑎𝑠𝑖𝑐 − 𝐶𝐴𝑞𝑆, −𝐶𝑁𝑞𝑆𝛼 ]
+T
+                        (4) 
+where 𝐹𝑎𝑒𝑟𝑜_𝑏𝑎𝑠𝑖𝑐 is the basic axial aerodynamic force which is a nonlinear function of 
+altitude. 𝑆 is the reference area of the launch vehicle, 𝑞 = 0.5𝜌(𝑣𝑥
+2 + 𝑣𝑧
+2) is the dy-
+namic pressure of the launch vehicle, 𝜌 is the atmospheric density of the current alti-
+tude calculated according to  the U.S. Standard Atmosphere model, 1976 (USSA, 
+1976) [16], 𝛼 is the attack angle.  
+In this paper, we only consider the effect of horizontal wind on the control of 
+launch vehicle. 32 types of wind field are considered in this simulation. The curves of 
+wind speed at different altitude of all wind fields are shown in Fig. 1. It is shown that 
+the wind speed at the altitude of 10.0km -15.0km is relatively high in the working 
+range of the launch vehicle. When designing the guidance law, we consider this area 
+as a gale area in which we will control the launch vehicle with a lower overload.  
+ 
+Fig.1. 32 types of wind field in this paper. 
+
+
+===== PAGE 4 =====
+
+4 
+𝐶𝐴 and 𝐶𝑁 in Eq.(4) are the axial aerodynamic force coefficient and normal aerody-
+namic force coefficient of the launch vehicle, respectively. In this paper, 𝐶𝐴 and 𝐶𝑁 
+are considered as the nonlinear function of Mach number at the current altitude.  
+In this paper, 𝐶𝐴 and 𝐶𝑁 are calculated according to the appendix of [15]. 
+Consider the process of trajectory tracking control as a Markov Decision Process 
+(MDP) [11], we assume that the position and velocity of the launch vehicle in the next 
+control period is only determined by the current the position and velocity of the 
+launch vehicle and the control signal of the guidance loop. In this paper, as is men-
+tioned above, the pitch angle is considered as the output signal of the guidance law.  
+Assume that the launch vehicle tracks the desired trajectory with zero tracking er-
+ror, the current position and velocity of the launch vehicle are presented as [𝑥𝑑, 𝑧𝑑]𝑇 
+and [𝑣𝑥𝑑, 𝑣𝑧𝑑]𝑇, respectively. In this paper, the goal of our guidance law design is to 
+make the launch vehicle track the desired trajectory with high tracking accuracy and 
+low normal overload. To make the state variable directly represent the effect of posi-
+tion control accuracy and the normal acceleratio n  𝑁𝑧 (represents the acceleration of 
+the launch vehicle at z -axis), we utilize the position tracking error and the velocity 
+tracking error to combine the state vector 𝒔𝒕 , described as: 
+ 𝒔𝒕 = [𝑘1𝑒𝑥, 𝑘2𝑒𝑧, 𝑘3𝑒𝑣𝑥, 𝑘4𝑒𝑣𝑧, 𝑘5𝜑, 𝑘6𝑁𝑧]𝑇                               (6) 
+where 
+{
+𝑒𝑥 = 𝑥𝑑 − 𝑥
+𝑒𝑧 = 𝑧𝑑 − 𝑧
+𝑒𝑣𝑥 = 𝑣𝑥𝑑 − 𝑣𝑥
+𝑒𝑣𝑧 = 𝑣𝑧𝑑 − 𝑣𝑧
+                                                     (7) 
+𝑲 = [𝑘1, 𝑘2, 𝑘3, 𝑘4, 𝑘5, 𝑘6]𝑇 is the state weight vector to adjust each variable of the 
+state vector to within or near the range of [-1,1].  
+The action vector 𝒂𝒕 of the Markov Decision Process is set as:  
+𝒂𝒕 = [Δ𝜑]𝑇                                                        (8) 
+where Δ𝜑 is the increment of the pitch angle between the current control step and the 
+previous control step. In order to compare the performance difference between the 
+guidance law with load relief and the guidance law without load relief, in this paper 
+we design two different tasks and train different neural network controllers through 
+SAC reinforcement learning algorithm: 
+Task 1: The launch vehicle tracks the desired trajectory with the minimum tracking 
+error without considering the normal overload . The flight time costs 90s. The reward 
+function of the task is set as: 
+𝑟𝑡(𝒔𝒕, 𝒂𝒕) = −𝒆𝒕
+𝑻𝑷𝟏𝒆𝒕                                                (9) 
+where 𝒆𝒕 = [𝑒𝑥, 𝑒𝑧, 𝑒𝑣𝑥, 𝑒𝑣𝑧]𝑇, 𝑷𝟏 is a positive definite matrix. When designing the 
+guidance law for Task 2, the effect of the guidance law in Task 1 will be considered 
+as a reference to compare the effect of the guidance law in Task 2 in terms of load 
+reduction effect and control accuracy. 
+
+===== PAGE 5 =====
+
+5 
+Task 2: The launch vehicle tracks the desired trajectory with the balance of minimal 
+tracking error and minimal normal overload. Considering that high normal overload 
+mainly occurs in the gale area. When designing the reward function, we add a penalty 
+term related to normal overload to the reward function. The reward function is set as: 
+𝑟𝑡 = {−𝒆𝒕
+𝑻𝑷𝟏𝒆𝒕 − 0.01𝛼 ∙ 𝑞 104 < 𝑥 < 1.5 × 104
+−𝒆𝒕
+𝑻𝑷𝟏𝒆𝒕 otherwise                     (10) 
+3 The Design of Guidance Law Training Algorithm  
+In this paper, we utilized SAC algorithm to train the guidance law of under the condi-
+tion of Task 1 and Task 2. The structure of SAC agent designed in our paper is shown 
+in Fig. 2. As a stochastic policy gradient algorithm, the actor network is utilized to 
+generate an optimum policy 𝜋~𝑁(𝝁𝒕, 𝝈𝒕) to acquire the optimum from the environ-
+ment, where 𝝁𝒕 and 𝝈𝒕 are the output vectors of the actor network. The action vector 
+𝒂𝒕 is sampled from the policy conforms to a normal distribution with an expectation 
+vector 𝝁𝒕 and standard variance vector 𝝈𝒕. value networks are utilized to evaluate the 
+expectation of accumulated return 𝑉(𝒔𝒕) under the state 𝒔𝒕. The outputs of Q net-
+works are utilized to evaluate the accumulated return the agent gets with the action 𝒂𝒕 
+under the state 𝒔𝒕. Similar as TD3 algorithm, the structure of twin Q networks in SAC 
+algorithm is to prevent the overestimation of the accumulated value. 
+ 
+Fig.2. The guidance law training system basing on SAC algorithm.  
+Assume the accumulated return from the time 𝑡 is 𝑄𝑡_𝑑(𝒔𝒕, 𝒂𝒕), According to Bell-
+man equation, 𝑄𝑡_𝑑(𝒔𝒕, 𝒂𝒕) is written as: 
+𝑄𝑡_𝑑(𝒔𝒕, 𝒂𝒕) = 𝑟𝑡(𝒔𝒕, 𝒂𝒕) + 𝛾 𝔼𝑠𝑡+1~𝑝(𝑉(𝒔𝒕+𝟏))                         (11) 
+Actor 
+Network sample
+𝜋 
+Environment
+𝒔𝒕 
+𝛼 log(𝜋) − 𝑄 
+Q 
+Network 1
+Experience 
+Replay
+ Buffer
+𝑟𝑡 
+𝒔𝒕+𝟏 
+Q 
+Network 2
+𝒔𝒕+𝟏 
+Value 
+Network
+(Target)
+𝑽(𝒔𝒕+𝟏) 
+[𝒔𝒕, 𝒂𝒕, 𝒓𝒕, 𝒔𝒕+𝟏] 
+Target Q
+Calculation
+𝑟𝑡 
+𝑄𝑡_𝑑(𝒔𝒕, 𝒂𝒕) = 𝑟𝑡 + 𝛾𝑉(𝒔𝒕+𝟏) 
+𝑄(1)(𝒔𝒕, 𝒂𝒕) 
+𝑄(2)(𝒔𝒕, 𝒂𝒕) 
++ ++
+TD error
+Value 
+Network
+(Eval)
+𝒔𝒕 
+(From sample 
+batch)
+(From 
+sample 
+batch)
+𝑉(𝒔𝒕) 
++
+- -
+Entropy
+Calculation
+𝑉(𝒔𝒕) − 𝑄(𝑠𝑡, 𝑎𝑡) + 𝛼log⁡(𝜋) 
+𝛼 log(𝜋) − 𝑄 
+𝑄(2)(𝒔𝒕, 𝒂𝒕) 
+
+===== PAGE 6 =====
+
+6 
+In SAC algorithm, the agent aims to acquire not only the maximum reward but also 
+the maximum entropy. Taking the policy entropy as consideration, the desired value 
+of 𝑉𝑑(𝒔𝒕) is described as: 
+𝑉𝑑(𝒔𝒕) = 𝔼𝑎~𝜋(𝑄𝑡(𝒔𝒕, 𝒂𝒕) − 𝛼log𝜋(𝒂𝒕|𝒔𝒕))                               (12) 
+where 𝛼 is the temperature coefficient to measure the importance of policy entropy. 
+𝑄𝑡(𝒔𝒕, 𝒂𝒕) in Eq. (14) is calculated as: 
+ 𝑄𝑡(𝒔𝒕, 𝒂𝒕) = argmin
+𝑖=1,2
+{𝑄𝑡
+(𝑖)(𝒔𝒕, 𝒂𝒕)}                                    (13) 
+The loss function of value network (eval) is the square error of 𝑉𝑑(𝒔𝒕) and 𝑉(𝒔𝒕), 
+described as: 
+𝑙𝑜𝑠𝑠
+𝑉
+(𝑡) = 0.5(𝑉𝑑(𝒔𝒕) − 𝑉(𝒔𝒕))
+2
+                                    (14) 
+According to Bellman equation, the loss function of each Q network is set as:  
+𝑙𝑜𝑠𝑠
+𝑄(𝑖)
+(𝑡) = 0.5 (𝑄𝑡_𝑑(𝒔𝒕, 𝒂𝒕) − 𝑄𝑡
+(𝑖)(𝒔𝒕, 𝒂𝒕))
+2
+                         (15) 
+Consider the network generates an action 𝒂𝒕 with a normal distributed noise with 
+standard variance 𝝈𝒕, the loss function of the actor network is written as: 
+𝑙𝑜𝑠𝑠
+𝜋
+(𝑡) = 𝔼𝑠𝑡~𝑝 (𝛼0log(𝑝𝜋(𝒂𝒕|𝒔𝒕)) − 𝑄𝑡(𝒔𝒕, 𝒂𝒕))                    (16) 
+ where 𝑝𝜋(𝒂𝒕|𝒔𝒕) denotes the probability density of action 𝒂𝒕 under the state 𝒔𝒕 with 
+the distribution 𝜋~𝑁(𝝁𝒕, 𝝈𝒕). The loss function shows that compared with actions 
+which acquires high returns with high probability density (e.g. 𝒂𝒕 ≈ 𝝁𝒕), the agent 
+prefers to the actions which acquire similar accumulated returns with a lower  proba-
+bility density. The mechanism makes the algorithm more inclined to explore new 
+policies while keeping the accumulated returns not reduced. 
+In Ref. [10], the author modified the algorithm with an adaptive temperature coef-
+ficient 𝛼0. The loss function of 𝛼 is set as: 
+𝑙𝑜𝑠𝑠
+𝛼
+(𝑡) = 𝔼𝑎𝑡~𝜋(−𝛼0 log(𝑝𝜋(𝒂𝒕|𝒔𝒕)) − 𝛼0ℋ)                          (17) 
+where ℋ is the dimension of the action vector. 
+In this paper, all networks are set as fully -connected multi-layer networks. The out-
+put of each layer is written as:  
+𝒚 = 𝒉(𝒘𝑻𝒙 + 𝒃)                                                 (18) 
+where 𝒙 and 𝒚 are the input vector and the output vector of the layer, respectively. 𝒘 
+and 𝒃 are the parameter matrixes (or vectors) of the layer.  𝒉 is the activate function. 
+The parameters of the target networks are updated with the update law below:  
+𝒘𝑡𝑎𝑟,𝑛
+(𝑡+1) = (1 − 𝜏)𝒘𝑡𝑎𝑟,𝑛
+(𝑡) + 𝜏𝒘𝑒𝑣𝑎𝑙,𝑛
+(𝑡)                                      (19) 
+
+===== PAGE 7 =====
+
+7 
+where 𝒘𝑒𝑣𝑎𝑙,𝑛
+(𝑡)   and 𝒘𝑡𝑎𝑟,𝑛
+(𝑡)  are the parameters of the  nth eval network and the  nth tar-
+get network at time t, respectively.  After all networks are converged, the actor net-
+work can be utilized to generate actions as the guidance law. 
+The training process of the algorithm is shown in Table 1. 
+Table 1. The training process of SAC algorithm 
+Algorithm 1: Load relief guidance law training with SAC algorithm 
+Initialize all parameters of networks in Fig.2 with random values and initial the state of the launch vehicle. 
+while (s𝑡𝑒𝑝𝑠< 𝑏𝑎𝑡𝑐ℎ_𝑠𝑖𝑧𝑒) do 
+Generate actions with the actor network and run Markov decision process in the environment, zip all in-
+formation as the form [𝒔𝒕, 𝒂𝒕, 𝑟𝑡, 𝒔𝒕+𝟏]. 
+end while 
+while (𝑒𝑝𝑖𝑠𝑜𝑑𝑒< 𝑒𝑝𝑖𝑠𝑜𝑑𝑒𝑚𝑎𝑥) do 
+Initial the state of the launch vehicle with initial state 𝒔𝟎. 
+for 𝑡 = 1, 𝑇 do 
+         Calculate 𝝁𝒕 and 𝝈𝒕with actor network with input state 𝒔𝒕, and generate action 𝒂𝒕~𝑁(𝝁𝒕, 𝝈𝒕). 
+         Run Markov decision process in the environment, zip all information as the form [𝒔𝒕, 𝒂𝒕, 𝑟𝑡, 𝒔𝒕+𝟏]. 
+         if 𝑡%𝑢𝑝𝑑𝑎𝑡𝑒_𝑓𝑟𝑒𝑞𝑢𝑒𝑛𝑐𝑦== 0, do 
+Calculate 𝑉(𝒔𝒕) and 𝑉(𝒔𝒕+𝟏) with eval value network and target value network, respectively. 
+Calculate 𝑄𝑡
+(𝑖)(𝒔𝒕, 𝒂𝒕) with Q networks, Calculate 𝑄𝑡_𝑑(𝒔𝒕, 𝒂𝒕) according to Eq.(11). 
+Update parameters of all networks with Adam optimizer and loss functions in Eq.(14)~(17). 
+Update parameters of target value network according to Eq.(19). 
+end if 
+end for 
+end while 
+4 Simulation Result 
+During the simulation, we utilize Runge -Kutta method to solve the differential equa-
+tions in Eq.(1). The control period is set as 0.1s. For each task, 4 types of wind field 
+are set in the training environment as a priori knowledge of our training process, 
+while the other 28 types of wind field are set in the test environment to test the gener-
+alization of our algorithm. Parameters of the launch vehicle are set in Ref. [15]. 
+The actor network is set as the controller during the flight process after the net-
+works are converged. Assume the coordinate of the launch point is at (0km, 0km). 
+According to the standard flight trajectory, the launch vehicle will reach the point 
+nearly (22.014km, -15.308km) after 90s of flight. During the training process, all 
+hyper-parameters of our algorithm for Task 1 and Task 2 are set in Table 2. 
+The training process es of the guidance law for  the two tasks are  shown in Fig.3. 
+The blue curve s indicate the total reward of the current episode and the red curves  
+indicate average total reward of the last 100 episodes. After about 1000 episodes of 
+training, all networks and the temperature coefficient are converged and the reward of 
+
+===== PAGE 8 =====
+
+8 
+the episode gets nearly zero, which means the control error of the position and veloci-
+ty are converged with the guidance law designed with our algorithm.  
+Table 2. Hyper-parameters of SAC algorithm 
+Parameters Definition Value 
+𝑵(𝜋) Number of units of actor network in each hidden layer [256, 256] 
+𝑵(𝑉) Number of units of actor network in each hidden layer [256, 256] 
+𝑵(𝑄) Number of units of actor network in each hidden layer [256, 256] 
+𝜂𝑛𝑒𝑡 Learning rate of networks 0.0001 
+𝜂𝛼 Learning rate of temperature coefficient 0.0001 
+𝛾 Discount factor 0.99 
+𝜏 Soft-replacement parameter of target value network 0.005 
+ 
+Fig. 3. The training processes of the agents in the two tasks above.  
+Fig.4 shows the effect of the trajectory tracking with our guidance law under dif-
+ferent wind fields. The red curve represents the desired trajectory , and the curves of 
+other colors shows the flight trajectory of the launch vehicle under different wind 
+field. It is shown that the flight curves of the launch vehicle in different conditions are 
+almost coincide with the desired trajectory. The maximum tracking errors in the direc-
+tion of x -axis and z-axis are less than 100m. Consider the maximum speeds of the x -
+axis and the z -axis are larger than 600m/s and 400m/s, respectively, and the control 
+step is set as 0.1s, the tracking error of the guidance law almost reaches its optimum 
+state. Fig.5 shows the effect of the trajectory tracking with our guidance law under 
+different wind fields. It is shown that in different conditions, the launch vehicle tracks 
+the desired trajectory with a lower overload. The maximum tracking errors in the 
+
+
+===== PAGE 9 =====
+
+9 
+direction of x -axis and z -axis are less than 200m, and the maximum overload of the 
+launch vehicle in gale area is reduced by nearly 40%. 
+ 
+Fig.4. The control result of the guidance law in Task 1. The two upper figures show the posi-
+tion curve of the launch vehicle in x -axis and z -axis in different wind fields, respectively; the 
+two middle figures in the middle indicate the velocity curve of the launch vehicle in x -axis and 
+z-axis in different wind fields, respectively; the bottom left figure shows the pitch angle curve 
+of the launch vehicle in different wind fields, and the bottom right figure shows the overload 
+curve of the launch vehicle in different wind fields. 
+ 
+Fig.5. The control result of the guidance law in Task 2. The implication of each sub figure is 
+the same as that of Fig.4. 
+5 Conclusion 
+In this paper, SAC reinforcement learning algorithm is utilized to train neural -
+networked guidance l aws of for two launch vehicle flight tasks.  According to the 
+simulation result, with the effect of our guidance law, the launch vehicle tracks the 
+desired trajectory with a satisfied tracking error during the flight process under differ-
+ent disturbance of wind fields  in Task 1, moreover,  the launch vehicle can still accu-
+
+
+===== PAGE 10 =====
+
+10 
+rately track the desired trajectory with a lower overload under the effect of our guid-
+ance law in Task 2 . The algorithm presented in this paper is promising candidate for 
+developing guidance laws for launch vehicles, effectively enabling these launch vehi-
+cles to adhere to a predetermined trajectory with reduced overloads. 
+This work is supported by the National Natural Science Foundation of China 
+(Grant No. U21B2028). 
+References 
+1. R. M. Pinson, T. L. Schmitt, and J. M. Hanson .  Development of a Smooth Trajectory Ma-
+neuver Method to Accommodate the Ares I Flight Control Constrains . AIAA 2008-6292, 
+AIAA Guidance, Navigation, and Control Conference, Honolulu, Hawaii,  August 18-21, 
+2008. 
+2. M. Whorton, C. Hall, and S. Cook. Ascent Flight Control and Structural Interaction for the 
+Ares-I Crew Launch Vehicle. AIAA 2007-1780, April 2007. 
+3. R. L. James. A Three-Dimensional Trajectory Simulation Using Six Degrees of Freedom  
+with Arbitrary Wind,” NASA TN D-641, 1961. 
+4. Silver, D., Huang, et al., Mastering the game of Go with deep neural networks and tree 
+search. Nature, 529(7587), 484. 
+5. O. Vinyals, T. Ewalds, S. Bartunov, et al. StarCraft II: A New Challenge for Reinforce-
+ment Learning. arXiv preprint, arXiv:1708.04782, 2017. 
+6. C. Berner, G . Brockman, B. Chan, et al. Dota 2 with Large Scale Deep Reinforcement 
+Learning. arXiv preprint, arxiv:1912.06680, 2019. 
+7. K. Kamali，I. A. Bonev，C. Desrosiers. Real -time M otion Planning for Robotic Tele-
+operation Using Dynamic -goal Deep Reinforcement Learning. 17th Conference on Com-
+puter and Robot Vision (CRV), 2020. 
+8.  A. Sallab, M. Abdou, E. Perot, S. Yogamanl. Deep Reinforcement Learning framework 
+for Autonomous Driving. arXiv preprint, arXiv:1704.02532v1, 2017. 
+9. T. Haarnoja, A. Zhou, P. Abbeel, S. Levine. Soft Actor -Critic: Off-Policy Maximum En-
+tropy Deep Reinforcement Learning with a Stochastic Actor. arXiv preprint , arxiv: 
+1801.01290v2, 2018. 
+10. T. Haarnoja, A. Zhou, K.Hartikainen, et al. Soft Actor-Critic Algorithms and Applications. 
+arXiv preprint, arxiv: 1812.05905v2, 2019. 
+11. Richard S. Sutton and Andrew G. Barto. Reinforcement Learning: An Introduction, Second 
+edition. The MIT Press, 2017. 
+12. Lillicrap, Timothy P. Continuous control with deep reinforcement learning. arXiv preprint, 
+arXiv: 1509.02971, 2015. 
+13. S. Fujimoto, H. Van Hoof, and D . Meger. Addressing function approximation error in ac-
+tor-critic methods. ICML, 2018. 
+14. Butt, A., Popp, C. G., Pitts, H. M. and Sharp, D. J., “NASA Ares I Launch Vehicle Roll  
+and Reaction Control Systems Design Status,” NASA Technical Reports Server , August  
+2009. 
+15. W. Du. Dynamic modeling and ascent flight control of  Ares-I Crew Launch Vehicle  [D]. 
+Iowa State University, 2010. 
+16. U.S. Standard Atmosphere 1976. National Oceanic and Atmospheric (NOAA), 1976. 

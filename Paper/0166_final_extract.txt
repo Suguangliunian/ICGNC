@@ -1,0 +1,483 @@
+FILE 0166_final.pdf PAGES 10
+
+===== PAGE 1 =====
+
+Decoupled Geometric Control of the Quadrotor
+UA V Based on INDI
+Jinghe Hu and Bin Xian ∗
+School of Electrical and Information Engineering, Tianjin University, Tianjin 300072,
+P. R. China,
+2021234192@tju.edu.cn, xbin@tju.edu.cn
+Abstract. This paper introduces a novel decoupled geometric control
+method for quadrotor UAVs, based on the principles of incremental non-
+linear dynamic inversion (INDI). The proposed method leverages differ-
+ential flatness and INDI to linearize the nonlinearity of the UAV sys-
+tem, allowing for effective control of both translational and rotational
+movements. By applying INDI, the controller achieves strong tracking
+capabilities, particularly for large-angle yaw movements, while ensuring
+asymptotic convergence of attitude and position tracking errors. To val-
+idate the effectiveness of the proposed controller, simulations comparing
+it with an undecoupled geometric controller are conducted. The results
+demonstrate that the decoupled geometric control algorithm offers con-
+sistent performance and precise trajectory tracking.
+Keywords: Decoupled Geometric Control, Incremental Nonlinear Dy-
+namic Inversion, Nonlinear Control
+1 Introduction
+Quadrotor unmanned aerial vehicles (UAVs) have recently garnered significant
+interest due to their vast potential, affordability, lightweight portability, ease of
+maintenance, and superior maneuverability. These UAVs have been successfully
+deployed in various applications such as target search, food delivery, and disaster
+rescue [1]. In scenarios such as navigating tight spaces or rapidly locating targets
+in earthquake-affected areas, there is a crucial need for quadrotors to exhibit
+responsive attitude control and high-speed flight. Accurate trajectory tracking
+becomes vital in complex environments; however, achieving this is challenging
+due to the strong coupling characteristics inherent in UAV attitude control [2].
+Traditional flight controllers using Euler angles often face limitations due to
+potential singularity issues [3], prompting the development of quaternion-based
+controllers [4]. Nonetheless, these can experience unwinding events during actual
+flights, leading to discontinuous trajectories.
+Numerous researchers have explored various methods to reduce the nonlinear
+effects on quadrotor UAV attitude control. Techniques employed include fuzzy
+controllers [5], neural network controllers [6], and sliding mode controllers [7],
+
+===== PAGE 2 =====
+
+2 Jinghe Hu and Bin Xian
+among other algorithms. While these methods have mitigated the nonlinear im-
+pact on the UAV model, they have also led to a significant increase in compu-
+tational burden [8], limiting their practical application.
+Compared to other methods, Nonlinear Dynamic Inversion (NDI) is a practi-
+cal nonlinear control algorithm. By accurately characterizing the system, NDI
+can generate linearized control laws and eliminate all nonlinearities [9,10]. This
+method streamlines the control process, enhancing the stability and dependabil-
+ity of attitude control. However, NDI is highly sensitive to model mismatches
+[11]. Therefore, when utilizing NDI, attitude control performance and robustness
+can be improved by increasing modeling accuracy and calibrating the model ap-
+propriately.
+To effectively handle the nonlinear dynamics and model uncertainty of the
+quadrotor UAV, this paper presents an improved geometric control law based on
+INDI [12]. In contrast to the approach in [13], which designs attitude controllers
+in SO(3), the proposed controller achieves a decoupling of roll/pitch control and
+yaw control for the UAV. The roll/pitch controllers are designed based on the
+desired direction of total thrust, while the yaw controller is designed based on
+the desired direction of yaw motion. This decoupling architecture enables inde-
+pendent control of roll/pitch and yaw, enhancing the UAV’s performance during
+agile flight.
+The following are this paper’s primary contributions: (a) The proposed INDI-
+based decoupled geometric controller is simpler to implement for agile flights
+than geometric controllers designed within SO(3). (b) The quadrotor UAV’s
+high-speed maneuvers induce unknown external disturbances, which are com-
+pensated for by the proposed INDI decoupled controller for yaw angle. The
+stability of this controller has been proven through Lyapunov stability analysis.
+(c) Simulation results verify that, compared to geometric controllers constructed
+in SO(3), the proposed controller offers superior performance in terms of agile
+flight and system robustness.
+2 The model of a quadrotor UA V
+We define {I} = {X I , Y I , ZI } as the inertial coordinate system and {B} =
+{X B, Y B, ZB} as the body coordinate system in accordance with the right-
+hand rule principle. Define e1 = [1, 0, 0]T , e2 = [0, 1, 0]T , e3 = [0, 0, 1]T . The
+quadrotor UAV’s dynamic models are defined as follows :
+˙p = v. (1)
+m ˙v = mge3 − f Re3 + ∆x. (2)
+˙R = RS(w). (3)
+J ˙w + w × (J w) = τ + ∆R. (4)
+
+===== PAGE 3 =====
+
+DGC-INDI 3
+In the inertial coordinate system, the position vector is p(t) = ( x, y, z)T , and
+its velocity vector is v(t) = ( vx, vy, vz)T . The UAV’s mass and gravity acceler-
+ation are shown by the variables m and g, respectively, while the overall thrust
+produced by the rotor is indicated by f. The rotation matrix for the UAV from
+the body coordinate system to the inertial coordinate system is represented by
+the matrix R ∈ R3×3. In the body coordinate system, the angular velocity of
+the UAV is represented by the vector w = [w1, w2, w3]T . The quadrotor UAV’s
+rotational inertia characteristics are described by the matrix J, which repre-
+sents its inertia matrix. Unknown external disturbances are represented by the
+vectors ∆x and ∆R = [∆1, ∆2, ∆3]T . To control the quadrotor UAV’s attitude
+motion, the control input torque is represented by the vector τ = [τ1, τ2, τ3]T .
+The definition of the function S(w) is as follows:
+S(w) =
+
+
+0 −w3 w2
+w3 0 −w1
+−w2 w1 0
+
+ . (5)
+Rewrite (4) as:
+J1 ˙w1 + (−J2 + J3)w2w3 = τ1 + ∆1. (6)
+J2 ˙w2 + (−J3 + J1)w1w3 = τ2 + ∆2. (7)
+J3 ˙w3 + (−J1 + J2)w1w2 = τ3 + ∆3. (8)
+The state of the UAV can be represented as the vector [ x, y, z, ψ]T , following
+the differential flatness characteristics described in [15]. The quadrotor UAV’s
+position in the inertial frame is represented by the vector p = [ x, y, z]T , with
+its yaw angle indicated by ψ. This paper aims to develop an INDI geometric
+control rule with yaw angle decoupling, enabling the quadrotor UAV to follow
+rapidly changing yaw trajectories even in the presence of unforeseen external
+disturbances.
+3 Attitude Controller Design
+Presuming that the quadrotor UAV’s desired position trajectory in the inertial
+coordinate system is pd = [xd, yd, zd]T ∈ R3, and that the first body-fixed axis
+of the UAV’s desired direction is b1d(t) ∈ S2 =
+
+q ∈ R3 | ∥q∥ = 1
+	
+.
+3.1 Roll/Pitch Attitude Control Subsystem
+From (2), it is evident that the control resultant force of the UAV is−f Re3 ∈ R3.
+The resulting force is Re3 and it acts in that specific direction. Hence, to effec-
+tively regulate the UAV’s orientation, it is vital to govern its condition. The goal
+is to construct an attitude control system that achieves the following conditions:
+as time algorithms infinity , the matrix A algorithms −f Re3. Additionally, we
+will examine the stability of the resulting coupled system, assuming a virtual
+control input A.
+
+===== PAGE 4 =====
+
+4 Jinghe Hu and Bin Xian
+Given the expression, the desired direction of the b3 axis is indicated as b3d:
+b3d = − A
+∥A∥ . (9)
+Manipulating the orientation of the third axis b3 fixed to the body of the quadro-
+tor UAV results in roll and pitch movements. In this part, we will develop a
+roll/pitch controller that utilizes ( τ1, τ 2) to manipulate the orientation of the
+third body-fixed axis b3 of the quadrotor UAV. The objective is forb3 to converge
+to b3d as t algorithmes infinity. The remaining component τ3 will be utilised for
+the yaw control system.
+Begin by formulating the equations of motion for the b3 axis in the body frame
+of the UAV on the two-dimensional spherical surface S2. Define bi as the vector
+Rei in the unit sphere S2, where i belongs to the set {1, 2, 3}. Subsequently,
+it might be acquired:
+˙b3 = ˙Re3 = RS(w)e3
+= RS(w)R−1Re3 = RS(w)RT b3
+= S(Rw)b3 = w12 × b3.
+(10)
+Since the cross product of b3 and b3 is zero, the value of w12 in R3 is:
+w12 = w1b1 + w2b2. (11)
+By employing the Taylor series expansion, we can derive the following expressions
+for (6) and (7):
+˙w1 = ˙w10 + D1(w, ∆t) + ∆τ1
+J1
++ ∆1
+J1
+. (12)
+˙w2 = ˙w20 + D2(w, ∆t) + ∆τ2
+J2
++ ∆2
+J2
+. (13)
+∆τ1 = τ1 − τ10, ∆τ 2 = τ2 − τ20 is the incremental of τ.D1(w, ∆t), D 2(w, ∆t)is
+defined as:
+D1(w, ∆t) = J2 − J3
+J1
+(w2 + w3)(w2w3 − w20w30).
+D2(w, ∆t) = J3 − J1
+J2
+(w2 + w3)(w2w3 − w20w30).
+(14)
+Hence, the expression for ˙w12 is:
+˙w12 = ( ˙w10 + D1 (w, ∆t) + ∆τ1
+J1
++ ∆1
+J1
+)b1
++ ( ˙w20 + D2 (w, ∆t) + ∆τ2
+J2
++ ∆2
+J2
+)b2.
+(15)
+
+===== PAGE 5 =====
+
+DGC-INDI 5
+The desired angular velocity w12 for the quadrotor UAV can be expressed as :
+˙b3d = − A
+∥A∥ = w12d × b3d. (16)
+w12d = b3d × ˙b3d. (17)
+The error variables eb and ew are defined as vectors in R3, whereas the integral
+terms eI1 and eI2 a re defined as scalars in R:
+eb = b3d × b3. (18)
+ew = w12 + S (b3)2 w12d. (19)
+eI1 =
+Z t
+0
+(ew + m1eb) b1 dt (20)
+eI2 =
+Z t
+0
+(ew + m1eb) b2 dt (21)
+By differentiating the expression (19), we obtain:
+˙ew = ˙w12 + S (b3)2 w12d
++ ˙b3(b3 · w12d) + b3( ˙b3 · w12d).
+(22)
+To incorporate ˙w12 as defined in (15) into (22), we proceed as follows:
+˙ew = ( ˙w10 + D1 (w, ∆t) + ∆τ1
+J1
++ ∆1
+J1
+)b1
++ ( ˙w20 + D2 (w, ∆t) + ∆τ2
+J2
++ ∆2
+J2
+)b2
++ S (b3)2 w12d + ˙b3(b3 · w12d) + b3( ˙b3 · w12d).
+(23)
+Calculate the incremental control input torque as follows:
+∆τ1
+J1
+b1 + ∆τ2
+J2
+b2 = −( ˙w10 + D1 (w, ∆t))b1
+− ( ˙w20 + D2 (w, ∆t))b2
+− kbeb − kwew − kI eI1b1 − kI eI2b2
+− (b3w12d) ˙b3d − S (b3)2 ˙w12d.
+(24)
+˙ew = −kbeb − kwew − F + b3( ˙b3 · w12d). (25)
+Where F =P2
+j=1(kI eIj − ∆τj
+Jj
+)bj ∈ R3.
+Select the Lyapunov function V1 in the following manner:
+V1 = 1
+2 ew · ew + m1eb · ew + kb(1 − b3 · b3d) + F . (26)
+
+===== PAGE 6 =====
+
+6 Jinghe Hu and Bin Xian
+By differentiating V1 and simplifying the expression, we obtain:
+˙V1 ≤ (1 − kw) ∥ew∥2 + (B2 + kwm1) ∥eb∥ ∥ew∥
++ (−kbm1) ∥eb∥2 .
+(27)
+Define z1 = (∥eb∥ , ∥ew∥)T ∈ R2, then (27) can be simplified to:
+˙V1 ≤ z1
+T Q1z1. (28)
+where the following represents the matrix Q1 ∈ R2×2:
+Q1 =
+
+−kbm1 1
+2(B2 − kwm1)
+1
+2(B2 − kwm1) 1 − kw
+
+. (29)
+3.2 Y aw Control Subsystem
+This article assumes that b1d(t) represents the desired direction of the first body
+axis of a quadrotor UAV, as explained in Section 3.1. The normal plane of the
+b3 axis is projected with the desired direction of the first body axis b1d:
+b1c(t) = −S(b3)2b1d(t)
+= (I3×3 − b3(t)b3(t)T )b1d(t).
+(30)
+Therefore , b1c · b3 = 0. The objective of yaw control is to design τ3 such that
+as t → ∞, b1 → b1c.
+The following methods allow us to acquire ˙b1 and ˙b1c similarly to (10):
+˙b1 = w23 × b1 = −w2b3 + w3b2. (31)
+˙b1c = wc × b1c
+= (wc1b1 + wc2b2 + wc3b3) × b1c. (32)
+Define the following error function for the UAV’s yaw subsystem:
+Ω(b1, b1c) = 1
+2 ∥b1 − b1c∥2 = 1 − b1 · b1c. (33)
+By using the derivative of the UAV’s yaw subsystem’s error function (33) we
+obtain:
+˙Ω(b1, b1c) = (w3 − wc3)(−b2 · b1c). (34)
+This leads to the following fault definition for the UAV’s yaw subsystem:
+eΨ = −b2 · b1c. (35)
+ewΨ = w3 − wc3. (36)
+
+===== PAGE 7 =====
+
+DGC-INDI 7
+The simplified equation is as follows after expanding (8) in a Taylor series:
+˙w3 = ˙w30 + ∆τ3
+J3
++ ∆3
+J3
+. (37)
+By taking the derivative of (36) and replacing it with (37), we obtain:
+˙ewΨ = ˙w30 + ∆τ3
+J3
++ ∆3
+J3
+− ˙wc3. (38)
+As a result, the UAV’s yaw subsystem’s intended incremental control input
+torque is:
+∆τ3
+J3
+= − ˙w30 + ˙wc3 − kΨ eΨ − kwΨ ewΨ . (39)
+Substituting (39) into (38), we get:
+˙ewΨ = −kΨ eΨ − kwΨ ewΨ + ∆3
+J3
+. (40)
+Select the V2 Lyapunov function:
+V2 = 1
+2 ewΨ · ewΨ + eΨ · ewΨ + k3(1 − b1 · b1c). (41)
+After applying (41) to the derivative of the Lyapunov function V2, we obtain:
+˙V2 ≤ (1 − kwΨ ) ∥ewΨ ∥2 − kwΨ ∥ewΨ ∥ ∥eΨ ∥
+− k3 ∥eΨ ∥2 + (∥eΨ ∥ + ∥ewΨ ∥) ∆3
+J3
+.
+(42)
+Define z2 = ( ∥eΨ ∥ , ∥ewΨ ∥)T ∈ R2, then we can see that ∥eΨ ∥ + ∥ewΨ ∥ ≤√
+2 ∥z2∥. Therefore, (42) can be simplified as:
+˙V2 ≤ z2
+T Q2z2 + α ∥z2∥
+≤ λmin(Q2) ∥z2∥2 + α ∥z2∥
+≤ ρ ∥z2∥2 , ∥z2∥ ≥ α
+λmin(Q2) − ρ .
+(43)
+where ρ ∈ (λmin(Q2), 0), and the matrix Q2 ∈ R2×2 is given by:
+Q2 =
+ −k3c2 − 1
+2 kwΨ
+− 1
+2 kwΨ 1 − kwΨ
+
+. (44)
+4 Simulation
+To assess the efficacy of the decoupled geometric control algorithm utilizing
+INDI, a comparative simulation is conducted in MATLAB, comparing the pro-
+posed method with an uncoupled geometric control algorithm. The quadrotor
+
+===== PAGE 8 =====
+
+8 Jinghe Hu and Bin Xian
+UAV simulation is provided with an intended trajectory, denoted as (45):
+
+
+
+wref = 2π/T (rad/s)
+xd(t) = [A sin(a t + d), B sin (b t), 1 + C cos (c t)]T
+Ψd(t) = [cos(wref t), sin (wref t), 0]T
+(45)
+Figure 1 shows the trajectory of the quadrotor UAV in the MATLAB simulation,
+represented in three dimensions. In the diagram, pd denotes the desired trajec-
+tory as defined in (45), p1 represents the three-dimensional trajectory computed
+by the algorithm presented in this paper, and p2 represents the trajectory com-
+puted using the geometric control algorithm defined in [13]. Figures 2-3 present
+the numerical simulation results corresponding to this information.
+Fig. 1: The 3D trajectory of the quadrotor UAV
+Figure 2 illustrates the positional tracking error of the quadrotor UAV in the
+MATLAB simulation. The subscript 1 indicates the tracking error achieved by
+the algorithm described in this paper, while the subscript 2 indicates the tracking
+error achieved by the comparative algorithm. The algorithm presented in this
+paper demonstrates superior performance in terms of convergence speed and
+tracking accuracy, outperforming the comparator algorithm in position tracking.
+Figure 3 depicts the errors in the attitude angle. The subscript 1 indicates the
+attitude angle error derived from the algorithm described in this paper, while
+the subscript 2 reflects the attitude angle error obtained from the comparative
+algorithm. The simulation findings indicate that the algorithm proposed in this
+paper outperforms the comparative algorithm in terms of tracking speed, track-
+ing performance, and tracking error magnitude.
+
+===== PAGE 9 =====
+
+DGC-INDI 9
+0 2 4 6 8 10 12 14 16 18 20
+-1
+0
+1
+e1p.x
+e2p.x
+0 2 4 6 8 10 12 14 16 18 20
+-2
+-1
+0
+1
+e1p.y
+e2p.y
+0 2 4 6 8 10 12 14 16 18 20
+-2
+-1
+0 e1p.z
+e2p.z
+Fig. 2: The position tracking errors of the quadrotor UAV
+0 2 4 6 8 10 12 14 16 18 20
+-100
+0
+100
+e1
+e2
+0 2 4 6 8 10 12 14 16 18 20
+-50
+0
+50
+e1
+e2
+0 2 4 6 8 10 12 14 16 18 20
+0
+50
+100
+e1
+e2
+Fig. 3: The attitude tracking errors of the quadrotor UAV
+5 Conclusion
+This paper introduces a decoupled geometric control algorithm based on INDI.
+The method allows the quadrotor UAV to achieve agile flight even when facing
+unknown external disturbances. In contrast to current non-decoupled geomet-
+ric control algorithms, the proposed algorithm effectively linearizes the UAV’s
+nonlinear model by employing INDI. This results in enhanced response time and
+improved accuracy in tracking the trajectory. Future work will focus on applying
+the proposed control algorithm to practical quadrotor UAVs.
+References
+1. Du, Zhong-Hui., Wu, Huai-Ning., Feng, Shuang.: Boundary Control of a Quadrotor
+UAV with a Payload Connected by a Flexible Cable. In: 37th Chinese Control
+Conference (CCC), pp. 1151-1156. IEEE Press, Wuhan (2018). doi:10.23919/ChiCC.
+2018.8482775
+2. Zhao, Zhenhua and Cao, Dong and Yang, Jun and Wang, Huiming: High-order
+Sliding Mode Observer-based Trajectory Tracking Control for a Quadrotor UAV
+with Uncertain Dynamics. In: Nonlinear Dynamics, vol. 102, pp. 2583-2596 (2020).
+https://api.semanticscholar.org/CorpusID:228832889
+3. Mahony, Robert and Kumar, Vijay and Corke, Peter: Multirotor Aerial Vehicles:
+Modeling, Estimation, and Control of Quadrotor. In: IEEE Robotics and Automa-
+tion Magazine, vol. 19, no. 3, pp. 20-32 (2012). doi:10.1109/MRA.2012.2206474
+
+===== PAGE 10 =====
+
+10 Jinghe Hu and Bin Xian
+4. Bouhired, Saadi and Bouchoucha, Mouloud and Tadjine, Mohamed: Quaternion-
+based Global Attitude Tracking Controller for a Quadrotor UAV. In: 3rd Interna-
+tional Conference on Systems and Control. IEEE (2013). doi:10.1109/ICoSC.2013.
+6750969
+5. Huang, Tianpeng and Li, Tieshan and Chen, C. L. Philip and Li, Yanan: Atti-
+tude Stabilization for a Quadrotor Using Adaptive Control Algorithm. In: IEEE
+Transactions on Aerospace and Electronic Systems, vol. , no. , pp. 1-14 (2023).
+doi:10.1109/TAES.2023.3323633
+6. Liang, Xiao and Zhang, Zhuang and Yu, Hai and Wang, Yang and Sun, Ning: Adap-
+tive Neural Network Control of Quadrotor Unmanned Aerial Vehicle Transporta-
+tion Systems. In: 2021 IEEE International Conference on Real-time Computing and
+Robotics (RCAR). IEEE (2021). doi:10.1109/RCAR52367.2021.9517488
+7. Mofid, Omid and Mobayen, Saleh and Fekih, Afef: Adaptive Integral-Type Terminal
+Sliding Mode Control for Unmanned Aerial Vehicle Under Model Uncertainties and
+External Disturbances. In: IEEE Access, vol. 9, pp. 53255-53265 (2021). doi:10.
+1109/ACCESS.2021.3070400
+8. Lu, Peng and van Kampen, Erik-Jan and de Visser, Cornelis and Chu, Qiping:
+Aircraft Fault-tolerant Trajectory Control Using Incremental Nonlinear Dynamic
+Inversion. In: Control Engineering Practice, vol. 57, pp. 126-141 (2016). doi:10.
+1016/j.conengprac.2016.09.010
+9. Xiang, Tian and Jiang, Fan and Hao, Qi and Cong, Wang: Adaptive Flight Con-
+trol for Quadrotor UAVs with Dynamic Inversion and Neural Networks. In: 2016
+IEEE International Conference on Multisensor Fusion and Integration for Intelligent
+Systems (MFI). IEEE (2016). doi:10.1109/MFI.2016.7849485
+10. Zhang, Qihui and Fu, Mengyin and Zhai, Chaoyang and Wang, Simai and Ning, Ke
+and Wang, Meiling: Incremental Nonlinear Dynamic Inversion Control for Quadro-
+tor UAV With an Angular Accelerometer. In: 2023 42nd Chinese Control Conference
+(CCC). IEEE (2023). doi:10.23919/CCC58697.2023.10240476
+11. Safwat, Ehab and Zhang, Weiguo and Lyu, Yongxi and Kassem, Mohammed: Non-
+linear Dynamic Inversion Flight Controller For Small Unmanned Aircraft Vehicle.
+In: 2018 IEEE CSAA Guidance, Navigation and Control Conference (CGNCC).
+IEEE (2018). doi:10.1109/GNCC42960.2018.9018990
+12. Yang, Jiesong and Cai, Zhihao and Zhao, Jiang and Wang, Zexin and Ding, Yongfei
+and Wang, Yingxun: INDI-based Aggressive Quadrotor Flight Control with Position
+and Attitude Constraints. In: Robotics and Autonomous Systems, vol. 159, pp.
+104292 (2023). doi:10.1016/j.robot.2022.104292
+13. Bisheban, Mahdis and Lee, Taeyoung: Geometric Adaptive Control With Neural
+Networks for a Quadrotor in Wind Fields. In: IEEE Transactions on Control Systems
+Technology, vol. 29, no. 4, pp. 1533-1548 (2021). doi:10.1109/TCST.2020.3006184
+14. Bisheban, Mahdis and Lee, Taeyoung: Computational Geometric System Identifi-
+cation for the Attitude Dynamics on SO(3). In: 2017 American Control Conference
+(ACC). IEEE (2017). doi:10.23919/ACC.2017.7963287
+15. Mellinger, Daniel and Kumar, Vijay: Minimum Snap Trajectory Generation and
+Control for Quadrotors. In: 2011 IEEE International Conference on Robotics and
+Automation. IEEE (2011). doi:10.1109/ICRA.2011.5980409

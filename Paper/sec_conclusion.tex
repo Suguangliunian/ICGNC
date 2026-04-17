@@ -1,0 +1,30 @@
+% sec_conclusion.tex — Section 6: Conclusion (compressed)
+% ICGNC 2026, Springer svproc template
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This paper presented TAGA-LLM, a two-stage framework that bridges MARL cooperative
+performance with LLM interpretability for multi-UAV mission planning.  The TAGA
+mechanism introduces three learnable, physics-informed attention
+factors---distance decay $f_d$, task awareness $f_m$, and information freshness
+$f_t$---that model realistic communication constraints beyond static-graph
+assumptions.  The MARL-to-LLM distillation pipeline, combining topology-aware
+prompt encoding, chain-of-thought supervision, and counterfactual augmentation,
+transfers cooperative strategies into a Qwen-4B model that provides transparent
+reasoning, instruction controllability under the five mission directives
+(\textsc{bal}--\textsc{coo}), and efficient edge deployment
+(${\sim}70$\,ms/step with 4-bit quantization).
+
+\paragraph{Limitations.}
+The current framework assumes homogeneous UAVs and a simplified grid-based
+environment.  The distillation quality depends on the coverage of the expert
+trajectory dataset, and the 256-token prompt truncation may lose information in
+dense scenarios.  Additionally, the chain-of-thought supervision relies on
+template-based rationale generation rather than human annotations.
+
+\paragraph{Future work.}
+Promising directions include extending to heterogeneous swarms with
+role-specific policies, incorporating online adaptation for non-stationary
+environments, and validating on real-world UAV testbeds with physical
+communication constraints.

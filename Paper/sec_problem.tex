@@ -1,0 +1,45 @@
+% sec_problem.tex — Section 3: Problem Statement (ICGNC proceedings style)
+% ICGNC 2026, Springer svproc template
+
+\section{Problem Statement}
+\label{sec:problem}
+
+We model the mission as a Decentralized Partially Observable Markov Decision
+Process (Dec-POMDP) $\langle \mathcal{N}, \mathcal{S}, \{\mathcal{O}_i\}_{i=1}^{N},
+\{\mathcal{A}_i\}_{i=1}^{N}, \mathcal{T}, \mathcal{R}, \gamma \rangle$ with
+$N\!=\!10$ homogeneous UAVs on a $100\!\times\!100$ grid containing $M\!=\!5$
+hidden targets and $K\!=\!7$ threat zones.
+
+\paragraph{Observation.}
+Each UAV~$i$ observes $o_i = (o_i^{\text{grid}}, o_i^{\text{self}})$: a
+five-channel $11\!\times\!11$ binary map (obstacles, explored cells, friendly
+UAVs, targets, threats) and a 6-dim state vector (position, velocity, energy,
+mode).
+
+\paragraph{Action.}
+UAV~$i$ selects mode $m_i \!\in\! \{\text{search}, \text{attack}\}$, then a
+mode-conditioned action: 9 moves (8 directions + stay) in search mode, plus
+\emph{fire} in attack mode.  Invalid actions are masked.
+
+\paragraph{Communication.}
+A dynamic graph $\mathcal{G}_t\!=\!(\mathcal{N}, \mathcal{E}_t)$ with edge
+$(i,j) \!\in\! \mathcal{E}_t$ iff $d_{ij} \!\leq\! R_{\text{comm}}\!=\!20$.
+For each pair $(i,j)$, we track the \emph{message staleness}
+$\Delta t_{ij} \!\geq\! 0$, defined as the number of time steps since UAV~$j$
+last successfully transmitted to UAV~$i$ (reset to 0 upon reception).
+
+\paragraph{Reward.}
+The shared reward combines search coverage ($w_s\!=\!0.1$), target discovery
+($w_d\!=\!1.0$), destruction ($w_a\!=\!5.0$), cooperative bonus
+($w_c\!=\!3.0$), threat/loss penalty ($w_p\!=\!{-}2.0$), and time cost
+($w_t\!=\!{-}0.01$):
+\begin{equation}
+  r_t = w_s r_t^{\text{cov}} + w_d r_t^{\text{disc}} + w_a r_t^{\text{atk}}
+  + w_c r_t^{\text{coop}} + w_p r_t^{\text{pen}} + w_t.
+  \label{eq:reward}
+\end{equation}
+The terms $r_t^{\text{cov}},\ldots,r_t^{\text{pen}}$ denote incremental
+contributions at step~$t$ and are typically sparse (zero unless the corresponding
+event occurs).
+We evaluate via five metrics: search coverage, target destroy rate,
+completion time, UAV survival rate, and cooperative attack ratio.

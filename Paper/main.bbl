@@ -1,0 +1,71 @@
+\begin{thebibliography}{10}
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\urlprefix}{URL }
+
+\bibitem{shakhatreh2019unmanned}
+Shakhatreh, H., Sawalmeh, A.H., Al-Fuqaha, A., Dou, Z., Almaita, E., Khalil, I., Othman, N.S., Khreishah, A., Guizani, M.: Unmanned aerial vehicles ({UAVs}): A survey on civil applications and key research challenges. IEEE Access  7,  48572--48634 (2019)
+
+\bibitem{lowe2017multi}
+Lowe, R., Wu, Y.I., Tamar, A., Harb, J., Abbeel, P., Mordatch, I.: Multi-agent actor-critic for mixed cooperative-competitive environments. In: Advances in Neural Information Processing Systems. vol.~30 (2017)
+
+\bibitem{yu2022surprising}
+Yu, C., Velu, A., Vinitsky, E., Gao, J., Wang, Y., Baez, A., Bhatt, S., Finn, C., Wu, Y.: The surprising effectiveness of {PPO} in cooperative multi-agent games. In: Advances in Neural Information Processing Systems. vol.~35 (2022)
+
+\bibitem{sukhbaatar2016learning}
+Sukhbaatar, S., Szlam, A., Fergus, R.: Learning multiagent communication with backpropagation. In: Advances in Neural Information Processing Systems. vol.~29 (2016)
+
+\bibitem{jiang2020graph}
+Jiang, J., Dun, C., Huang, T., Lu, Z.: Graph convolutional reinforcement learning. In: International Conference on Learning Representations (2020)
+
+\bibitem{velickovic2018gat}
+Veli{\v{c}}kovi{\'c}, P., Cucurull, G., Casanova, A., Romero, A., Li{\`o}, P., Bengio, Y.: Graph attention networks. In: International Conference on Learning Representations (2018)
+
+\bibitem{brown2020language}
+Brown, T., Mann, B., Ryder, N., Subbiah, M., Kaplan, J.D., Dhariwal, P., Neelakantan, A., Shyam, P., Sastry, G., Askell, A., et~al.: Language models are few-shot learners. Advances in Neural Information Processing Systems  33,  1877--1901 (2020)
+
+\bibitem{yao2023react}
+Yao, S., Zhao, J., Yu, D., Du, N., Shafran, I., Narasimhan, K., Cao, Y.: {ReAct}: Synergizing reasoning and acting in language models. In: International Conference on Learning Representations (2023)
+
+\bibitem{shinn2023reflexion}
+Shinn, N., Cassano, F., Gopinath, A., Narasimhan, K., Yao, S.: Reflexion: Language agents with verbal reinforcement learning. In: Advances in Neural Information Processing Systems. vol.~36 (2023)
+
+\bibitem{das2019tarmac}
+Das, A., Gervet, T., Romoff, J., Batra, D., Parikh, D., Rabbat, M., Pineau, J.: {TarMAC}: Targeted multi-agent communication. In: International Conference on Machine Learning. pp. 1538--1546 (2019)
+
+\bibitem{rashid2018qmix}
+Rashid, T., Samvelyan, M., Schroeder~de Witt, C., Farquhar, G., Foerster, J., Whiteson, S.: {QMIX}: Monotonic value function factorisation for deep multi-agent reinforcement learning. In: International Conference on Machine Learning. pp. 4295--4304 (2018)
+
+\bibitem{wang2023voyager}
+Wang, G., Xie, Y., Jiang, Y., Mandlekar, A., Xiao, C., Zhu, Y., Fan, L., Anandkumar, A.: Voyager: An open-ended embodied agent with large language models. arXiv preprint arXiv:2305.16291  (2023)
+
+\bibitem{ahn2022saycan}
+Ahn, M., Brohan, A., Brown, N., Chebotar, Y., Cortes, O., David, B., Finn, C., Fu, C., Gober, K., Gopalakrishnan, K., et~al.: Do as {I} can, not as {I} say: Grounding language in robotic affordances. In: Conference on Robot Learning. pp. 287--318 (2022)
+
+\bibitem{rusu2016policy}
+Rusu, A.A., Colmenarejo, S.G., Gulcehre, C., Desjardins, G., Kirkpatrick, J., Pascanu, R., Mnih, V., Kavukcuoglu, K., Hadsell, R.: Policy distillation. International Conference on Learning Representations  (2016)
+
+\bibitem{li2023camel}
+Li, G., Hammoud, H.A.A.K., Itani, H., Khizbullin, D., Ghanem, B.: {CAMEL}: Communicative agents for ``mind'' exploration of large language model society. Advances in Neural Information Processing Systems  36 (2023)
+
+\bibitem{hu2022lora}
+Hu, E.J., Shen, Y., Wallis, P., Allen-Zhu, Z., Li, Y., Wang, S., Wang, L., Chen, W.: {LoRA}: Low-rank adaptation of large language models. In: International Conference on Learning Representations (2022)
+
+\bibitem{ge2002dynamic}
+Ge, S.S., Cui, Y.J.: Dynamic motion planning for mobile robots using potential field method. Autonomous Robots  13(3),  207--222 (2002)
+
+\bibitem{choi2009consensus}
+Choi, H.L., Brunet, L., How, J.P.: Consensus-based decentralized auctions for robust task allocation. IEEE Transactions on Robotics  25(4),  912--926 (2009)
+
+\bibitem{dorigo2006ant}
+Dorigo, M., Birattari, M., Stutzle, T.: Ant colony optimization. IEEE Computational Intelligence Magazine  1(4),  28--39 (2006)
+
+\bibitem{kuba2022trust}
+Kuba, J.G., Chen, R., Wen, M., Wen, Y., Sun, F., Wang, J., Yang, Y.: Trust region policy optimisation in multi-agent reinforcement learning. In: International Conference on Learning Representations (2022)
+
+\bibitem{schulman2016gae}
+Schulman, J., Moritz, P., Levine, S., Jordan, M., Abbeel, P.: High-dimensional continuous control using generalized advantage estimation. International Conference on Learning Representations  (2016)
+
+\bibitem{qwen2024}
+{Qwen Team}: Qwen2 technical report. arXiv preprint arXiv:2407.10671  (2024)
+
+\end{thebibliography}

@@ -1,0 +1,58 @@
+% sec_introduction.tex — Section 1: Introduction (compressed)
+% ICGNC 2026, Springer svproc template
+
+\section{Introduction}
+\label{sec:intro}
+
+Multi-UAV cooperative search and attack missions require a swarm of UAVs to
+autonomously explore unknown environments, discover hidden targets, and
+coordinate strikes under stringent communication constraints and threat
+zones~\cite{shakhatreh2019unmanned}.  The core challenge is achieving effective
+inter-agent coordination when each UAV possesses only a partial, local view and
+can communicate only within a limited radius.
+
+Multi-Agent Reinforcement Learning (MARL) offers a data-driven approach to
+learning cooperative policies~\cite{lowe2017multi,yu2022surprising}.
+Graph-based communication mechanisms such as
+CommNet~\cite{sukhbaatar2016learning} and DGN~\cite{jiang2020graph} enable
+learned message passing, yet standard Graph Attention Networks
+(GATs)~\cite{velickovic2018gat} treat all links equally, ignoring that wireless
+channel quality degrades with distance, co-modal agents share higher mutual
+information, and stale messages carry increasing uncertainty.  Furthermore, MARL
+policies are inherently opaque.  Large Language Models
+(LLMs)~\cite{brown2020language} have shown strong reasoning
+capabilities~\cite{yao2023react,shinn2023reflexion}, but directly applying them
+to multi-UAV coordination is hindered by the lack of domain-specific
+cooperative strategies and the difficulty of encoding topology-dependent states
+into prompts.
+
+We propose TAGA-LLM, a two-stage framework that combines MARL's
+cooperative learning strength with LLM interpretability.  The key insight is
+that MARL discovers effective cooperative strategies but locks them inside
+opaque neural networks, while LLMs excel at structured reasoning and natural
+language explanation but lack domain-specific cooperative knowledge;
+distillation bridges this complementary gap.  In \emph{Stage~I}, we introduce the
+\emph{Topology-Adaptive Graph Attention} (TAGA) mechanism with three learnable
+factors---distance decay, task awareness, and information freshness---integrated
+into a hierarchical MAPPO framework with curriculum learning.  In
+\emph{Stage~II}, we distill the TAGA-MAPPO policy into a Qwen-4B LLM via LoRA
+fine-tuning with topology-aware prompt encoding, CoT supervision, and
+counterfactual data augmentation.
+
+The primary contributions of this paper are summarized as follows:
+\begin{inparaenum}[(a)]
+\item a TAGA mechanism with three physics-informed adaptive factors for
+  communication aware multi-agent coordination;
+\item a two-stage MARL to LLM distillation pipeline that yields
+  interpretable and instruction-controllable mission planning; and
+\item a hierarchical policy architecture trained with MAPPO and a
+  three-stage curriculum.
+\end{inparaenum}
+
+The rest of this paper is organized as follows.
+In Sect.~\ref{sec:related}, we review related work.
+In Sect.~\ref{sec:problem}, we state the Dec-POMDP formulation of the mission.
+In Sect.~\ref{sec:method}, we present the TAGA-LLM framework, including TAGA,
+MAPPO training, and distillation.
+In Sect.~\ref{sec:experiments}, we report simulation and evaluation plans.
+Finally, Sect.~\ref{sec:conclusion} concludes the paper.

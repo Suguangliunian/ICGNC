@@ -1,0 +1,60 @@
+{
+  "generated_at_s": 88.90901684761047,
+  "device": "cpu",
+  "n_updates": 90,
+  "random_baseline": {
+    "n_episodes": 24,
+    "summary": {
+      "search_coverage": {
+        "mean": 0.36075416666666665,
+        "std": 0.04299788649170588
+      },
+      "target_destroy_rate": {
+        "mean": 0.18333333333333335,
+        "std": 0.1434563004713545
+      },
+      "completion_time": {
+        "mean": 0.9,
+        "std": 0.0
+      },
+      "uav_survival_rate": {
+        "mean": 0.7416666666666667,
+        "std": 0.12481870911416904
+      },
+      "cooperative_attack_ratio": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    }
+  },
+  "mappo_greedy_eval": {
+    "n_episodes": 10,
+    "summary": {
+      "search_coverage": {
+        "mean": 0.5565,
+        "std": 0.06845673410588941
+      },
+      "target_destroy_rate": {
+        "mean": 0.0,
+        "std": 0.0
+      },
+      "completion_time": {
+        "mean": 1.0,
+        "std": 0.0
+      },
+      "uav_survival_rate": {
+        "mean": 0.6199999999999999,
+        "std": 0.13165611772087668
+      },
+      "cooperative_attack_ratio": {
+        "mean": 0.0,
+        "std": 0.0
+      }
+    }
+  },
+  "training_coverage_tail_mean": 0.5218306666666668,
+  "figures": {
+    "training_curves_pdf": "figures\\paper_exp\\training_losses.pdf",
+    "training_curves_png": "figures\\paper_exp\\training_losses.png"
+  }
+}
