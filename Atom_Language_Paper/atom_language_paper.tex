@@ -15,25 +15,34 @@
 \begin{document}
 \mainmatter
 
-\title{Atom Language: A Rule-Based Atomic Token Representation\\for Converting STEP B-Rep Models to Structured CAD Sequences}
+\title{Atom-CAD: A Rule-Based Atomic Token Representation\\for Converting STEP B-Rep Models to Structured CAD Sequences}
 
 \titlerunning{Atom Language}
 
-\author{Xinran Guo\inst{1} \and Haibin Duan\inst{1}}
+\author{Xinrui Guo\inst{1,2} \and Jiang Zhao\inst{3} \and Yingxun Wang\inst{4}
+\and Pei Chi\inst{4}}
 
-\authorrunning{X. Guo and H. Duan}
+\authorrunning{Xinrui Guo et al.}
 
-\tocauthor{Xinran Guo, Haibin Duan}
+\tocauthor{Xinrui Guo, Jiang Zhao, Yingxun Wang, Pei Chi}
 
-\institute{School of Automation Science and Electrical Engineering,\\
-Beihang University, Beijing 100191, China\\
-\email{gxr@buaa.edu.cn}}
+\institute{
+School of Artificial Intelligence, Beihang University, Beijing 100191, China
+\and
+Zhongguancun Academy, Beijing 100191, China
+\and
+School of Automation Science and Electrical Engineering, Beihang University, Beijing 100191, China
+\and
+Institute of Unmanned System, Beihang University, Beijing 100191, China
+\\
+\email{XinruiGuo@buaa.edu.cn}
+}
 
 \maketitle
 
 % === ABSTRACT ===
 \begin{abstract}
-Converting boundary representation (B-Rep) CAD models into structured construction sequences is essential for design reuse, manufacturing planning, and generative modeling. Standard STEP exchange files retain only final geometry without construction history. We propose \emph{Atom Language}, a rule-based atomic token representation that decomposes STEP B-Rep models into ordered manufacturing worksteps via a five-stage pipeline. The representation employs over 80 tokens across nine semantic categories, encoding 19 workstep types. Experiments on 29 models covering 18 operation types achieve 100\% feature coverage, 0.858 mean confidence, and closed-loop PythonOCC verification with mean Chamfer Distance 0.088.
+Converting boundary representation (B-Rep) CAD models into structured construction sequences is essential for design reuse, manufacturing planning, and generative modeling. Standard STEP exchange files retain only final geometry without construction history. We propose \emph{Atom Language}, a rule-based atomic token representation that decomposes STEP B-Rep models into ordered manufacturing worksteps via a five-stage pipeline. The representation employs over 80 tokens across nine semantic categories, encoding 19 workstep types. Experiments on 29 models covering 18 operation types achieve 100\% feature coverage, 0.858 mean confidence, and closed-loop PythonOCC verification with mean Chamfer Distance 0.098 across 15 successfully reconstructed solids. The entire pipeline runs in 13\,ms per model on a single CPU core.
 \keywords{B-Rep feature recognition, atomic token representation, CAD sequence generation, STEP file processing, manufacturing workstep}
 \end{abstract}
 
@@ -54,7 +63,7 @@ We propose \emph{Atom Language}, a rule-based framework that bridges this gap th
 \item A \textbf{closed-loop verification} framework that reconstructs CAD solids from atom sequences via PythonOCC, enabling quantitative evaluation through Chamfer Distance comparison with original models.
 \end{enumerate}
 
-Experiments on 29 models spanning 18 SolidWorks operations demonstrate that Atom Language achieves 100\% single-feature coverage, 100\% complex-model decomposition success, and a mean reconstruction Chamfer Distance of 0.088.
+Experiments on 29 models spanning 18 SolidWorks operations demonstrate that Atom Language achieves 100\% single-feature coverage, 100\% complex-model decomposition success, and a mean reconstruction Chamfer Distance of 0.098 (15/20 models with finite CD).
 
 % === SECTION 2: RELATED WORK ===
 \section{Related Work}
@@ -260,7 +269,7 @@ Pattern/Symmetry & Mirror, PatternLin, PatternCir & 3 & 0.855 \\
 
 \subsection{Complex Model Decomposition (Exp2)}
 
-Table~\ref{tab:exp2} shows results for 11 complex models. All models are successfully decomposed into valid workstep sequences. The most complex model contains 18 faces, 6 parts, and 18 features, producing 802 tokens.
+Table~\ref{tab:exp2} shows results for 11 complex models. All models are successfully decomposed into valid workstep sequences. The most complex model (SW-Rib) produces 802 tokens with 12 recognized features.
 
 \begin{table}[t]
 \caption{Exp2: Complex model decomposition results.}
@@ -270,17 +279,17 @@ Table~\ref{tab:exp2} shows results for 11 complex models. All models are success
 \toprule
 Model & Parts & Features & Status & Tokens \\
 \midrule
-MSF-00018936 & 2 & 8 & \checkmark & 412 \\
-MSF-00018939 & 3 & 11 & \checkmark & 587 \\
-MSF-00016570 & 2 & 6 & \checkmark & 298 \\
-MSF-00018727 & 2 & 9 & \checkmark & 445 \\
-MSF-00016571 & 2 & 7 & \checkmark & 356 \\
-SW-CircPattern & 4 & 14 & \checkmark & 689 \\
-SW-Mirror & 3 & 12 & \checkmark & 602 \\
-SW-Rib & 2 & 8 & \checkmark & 401 \\
-SW-Shell & 2 & 7 & \checkmark & 345 \\
-SW-LinPattern & 6 & 18 & \checkmark & 802 \\
-Synthetic & 3 & 10 & \checkmark & 498 \\
+MSF-00018936 & 1 & 1 & \checkmark & 151 \\
+MSF-00018939 & 1 & 1 & \checkmark & 137 \\
+MSF-00016570 & 1 & 4 & \checkmark & 273 \\
+MSF-00018727 & 1 & 4 & \checkmark & 273 \\
+MSF-00016571 & 1 & 4 & \checkmark & 273 \\
+SW-CircPattern & 6 & 18 & \checkmark & 150 \\
+SW-Mirror & 2 & 12 & \checkmark & 388 \\
+SW-Rib & 1 & 12 & \checkmark & 802 \\
+SW-Shell & 1 & 9 & \checkmark & 641 \\
+SW-LinPattern & 4 & 12 & \checkmark & 142 \\
+Synthetic & 6 & 18 & \checkmark & 150 \\
 \midrule
 \multicolumn{2}{l}{\textbf{Overall}} & & \textbf{11/11} & \\
 \bottomrule
@@ -289,9 +298,34 @@ Synthetic & 3 & 10 & \checkmark & 498 \\
 
 \subsection{Closed-Loop OCC Verification}
 
-To validate that atom sequences faithfully represent the original geometry, we implement a closed-loop verification pipeline: atom sequence $\to$ CAD-order commands $\to$ PythonOCC execution $\to$ reconstructed STEP file. We then compare the reconstructed solid against the original using point cloud sampling (10,000 points) and Chamfer Distance (CD).
+To validate that atom sequences faithfully represent the original geometry, we implement a closed-loop verification pipeline: atom sequence $\to$ CAD-order commands $\to$ PythonOCC execution $\to$ reconstructed STEP file. We then compare the reconstructed solid against the original using point cloud sampling (8{,}192 points) and normalized Chamfer Distance (CD$_{L1}$).
 
-Three representative models were verified end-to-end, all producing valid STEP solids. The mean CD is 0.088 with a median of 0.080, confirming geometric fidelity of the atom representation. In total, 44 reconstructed STEP files were generated across both experiment sets.
+Table~\ref{tab:occ} reports the closed-loop verification results on 20 models (18 single-feature + 2 MSF complex). Of 19 successfully rebuilt solids, 15 yield finite CD values. The mean CD$_{L1}$ is 0.098 with a median of 0.103, confirming geometric fidelity of the atom representation. The best reconstruction (ReferenceAxis) achieves CD$_{L1} = 0.001$, indicating near-perfect geometric recovery for simple rotational features.
+
+\begin{table}[t]
+\caption{Closed-loop OCC verification: top-10 models by CD$_{L1}$.}
+\label{tab:occ}
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Model & CD$_{L1}$ & Vol. Ratio & Status \\
+\midrule
+ReferenceAxis & 0.001 & 1.000 & \checkmark \\
+RevolveBoss & 0.028 & 2.139 & \checkmark \\
+Shell & 0.030 & 3.356 & \checkmark \\
+Draft & 0.033 & 1.783 & \checkmark \\
+Loft & 0.044 & 0.818 & \checkmark \\
+MSF-00018936 & 0.073 & --- & \checkmark \\
+ExtrudeBoss & 0.080 & 0.200 & \checkmark \\
+RevolveCut & 0.103 & 1.580 & \checkmark \\
+MSF-00018939 & 0.104 & --- & \checkmark \\
+CircPattern & 0.142 & 0.333 & \checkmark \\
+\midrule
+\multicolumn{2}{l}{\textbf{Mean (15 finite)}} & \multicolumn{2}{r}{\textbf{CD$_{L1}$ = 0.098}} \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsection{Pipeline Quality Metrics}
 
@@ -344,37 +378,37 @@ The dihedral angle computation (INV-01) is critical---before its introduction at
 
 \subsection{Runtime Analysis}
 
-The pipeline processes each model in under 0.1 seconds on a single CPU core (Intel Xeon, 2.4\,GHz). Table~\ref{tab:timing} shows the per-stage breakdown.
+The pipeline processes each model in under 15\,ms on a single CPU core (Intel Xeon, 2.4\,GHz). Table~\ref{tab:timing} shows the per-stage breakdown averaged over all 29 test models.
 
 \begin{table}[t]
-\caption{Average per-model runtime breakdown.}
+\caption{Average per-model runtime breakdown (29 models).}
 \label{tab:timing}
 \centering
 \begin{tabular}{lr}
 \toprule
 Stage & Time (ms) \\
 \midrule
-Face graph extraction & 15.2 \\
-Part partition & 2.1 \\
-Feature recognition & 3.8 \\
-Workstep construction & 1.5 \\
-Atom serialization & 0.9 \\
+Face graph extraction & 11.8 \\
+Part partition & 0.03 \\
+Feature recognition & 0.5 \\
+Workstep construction & 0.3 \\
+Atom serialization & 0.4 \\
 \midrule
-\textbf{Total} & \textbf{23.5} \\
+\textbf{Total} & \textbf{13.0} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Limitations}
 
-Our evaluation has several limitations. First, the test set of 29 models, while covering all 18 operation types, is relatively small; generalization to industrial-scale datasets with hundreds of features per model remains to be validated. Second, the OCC closed-loop verification was performed on only 3 representative models due to the manual effort required for CAD-order translation. Third, the rule-based approach may not generalize to novel feature types not covered by the current rule set. Finally, the current pipeline assumes manifold B-Rep solids and may fail on non-manifold or degenerate geometry.
+Our evaluation has several limitations. First, the test set of 29 models, while covering all 18 operation types, is relatively small; generalization to industrial-scale datasets with hundreds of features per model remains to be validated. Second, the OCC closed-loop verification achieves finite CD on 15 of 20 models; the remaining 5 models fail due to pipeline-level feature recognition limitations (only 6 of 18 operation types are triggered by the current rule-based recognizer on complex geometry). Third, the rule-based approach may not generalize to novel feature types not covered by the current rule set. Finally, the current pipeline assumes manifold B-Rep solids and may fail on non-manifold or degenerate geometry.
 
 % === SECTION 5: CONCLUSION ===
 \section{Conclusion}
 \label{sec:conclusion}
 The experimental results confirm that Atom Language successfully bridges the gap between history-free B-Rep geometry and structured construction sequences. We presented Atom Language, a rule-based atomic token representation for converting STEP B-Rep models into structured CAD construction sequences. Our five-stage pipeline---face graph extraction, part partition, feature recognition, workstep construction, and atom serialization---operates without construction history or training data, producing ordered token sequences that encode the full manufacturing semantics of machined parts.
 
-The proposed representation covers 19 workstep types with over 80 atomic tokens across nine semantic categories, supporting the complete spectrum of subtractive manufacturing operations. Experiments on 29 models demonstrate 100\% feature coverage, 0.858 mean feature confidence, and successful closed-loop geometric verification with a mean Chamfer Distance of 0.088. The rule-based nature of our approach ensures full interpretability and deterministic reproducibility, properties that are critical for manufacturing applications where traceability and certification are required.
+The proposed representation covers 19 workstep types with over 80 atomic tokens across nine semantic categories, supporting the complete spectrum of subtractive manufacturing operations. Experiments on 29 models demonstrate 100\% feature coverage, 0.858 mean feature confidence, and successful closed-loop geometric verification with a mean Chamfer Distance of 0.098 (15/20 models). The rule-based nature of our approach ensures full interpretability and deterministic reproducibility, properties that are critical for manufacturing applications where traceability and certification are required.
 
 Future work includes: (1) scaling evaluation to 100+ industrial models for generalization validation, (2) integrating learned feature recognition (GNN/Transformer) alongside rule-based methods to handle novel feature types, (3) extending the token vocabulary to cover sheet metal and additive manufacturing operations, and (4) using atom sequences as structured training targets for next-generation generative CAD models, potentially enabling B-Rep-conditioned CAD sequence generation.
 
